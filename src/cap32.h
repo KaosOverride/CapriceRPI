@@ -15,9 +15,9 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
-#define VERSION_STRING " V0.1 (CaPriCe32 v4.1.0) WIP"
+#define VERSION_STRING " V0.2 (CaPriCe32 v4.1.0) WIP"
 #define AUTOR_STRING " KaosOverride - 2015"
-#define NOTE_STRING " W.I.P 1 for RPI!"
+#define NOTE_STRING " W.I.P 2 for RPI!"
 
 #ifndef CAP32_H
 #define CAP32_H
@@ -408,7 +408,7 @@ typedef struct {
 
 typedef struct {
    char *pchZipFile;
-   char *pchExtension;
+   const char *pchExtension;
    char *pchFileNames;
    char *pchSelection;
    int iFiles;
@@ -432,7 +432,7 @@ typedef struct {
 int emulator_init(void);
 void emulator_shutdown(void);
 void emulator_reset(bool bolMF2Reset);
-
+extern int CPC_scr_height; //needed by crtc.c
 
 // fdc.c
 void fdc_write_data(unsigned char val);

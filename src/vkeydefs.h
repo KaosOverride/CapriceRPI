@@ -15,7 +15,8 @@ typedef struct {
 
 t_vkey virtualkeys [5][18]=
 {
- {   //row 0,  ESC,1,2,3...F7,F8,F9
+ {   
+	//row 0,  ESC,1,2,3...F7,F8,F9
 	{ 0       , 18    , 0x82 } ,  //ESC
 	{ 0       , 18    , 0x80 } ,  //1
 	{ 0       , 18    , 0x81 } ,  //2
@@ -35,7 +36,7 @@ t_vkey virtualkeys [5][18]=
 	{ 0       , 18    , 0x13 } ,  //F8
 	{ 0       , 18    , 0x03 } ,  //F9
 },{
-     //row 1,  TAB,Q,W,E...F4,F5,F6
+	//row 1,  TAB,Q,W,E...F4,F5,F6
 	{ 0       , 26    , 0x84 } ,  //TAB
 	{ 8       , 18    , 0x83 } ,  //Q
 	{ 8       , 18    , 0x73 } ,  //W
@@ -55,7 +56,8 @@ t_vkey virtualkeys [5][18]=
 	{ 0       , 18    , 0x14 } ,  //F5
 	{ 0       , 18    , 0x04 } ,  //F6
 },{
-	{ 0       , 33    , 0xff } ,//row 2,  CAPS LOCK,A,S,D...F1,F2,F3
+	//row 2,  CAPS LOCK,A,S,D...F1,F2,F3
+	{ 0       , 33    , 0xff } ,
 	{ 15      , 18    , 0x85 } ,//A
 	{ 15      , 18    , 0x74 } ,//S
 	{ 15      , 18    , 0x75 } ,//D
@@ -70,11 +72,12 @@ t_vkey virtualkeys [5][18]=
 	{ 15      , 18    , 0x21 } ,//[
 	{ 15      , 20    , 0x22 } ,//RETURN
 	{ 15      , 4     , 0x22 } ,//RETURN
-	{ 0       , 18    , 0x24 } ,//F4
-	{ 0       , 18    , 0x14 } ,//F5
+	{ 0       , 18    , 0x15 } ,//F4
+	{ 0       , 18    , 0x16 } ,//F5
 	{ 0       , 18    , 0x05 } ,//F6
 },{
-	{ 0       , 40    , 0xff } ,//row 2,  CAPS LOCK,A,S,D...F1,F2,F3
+//row 3,  MAYS,Z,X,C...F0,UP,F.
+	{ 0       , 40    , 0xff } ,
 	{ 22      , 18    , 0x87 } ,//Z
 	{ 22      , 18    , 0x77 } ,//X
 	{ 22      , 18    , 0x76 } ,//C
@@ -94,7 +97,8 @@ t_vkey virtualkeys [5][18]=
 	{ 0       , 18    , 0x07 } ,//PERIOD
 
 },{
-	{ 0       , 40    , 0x00 } ,//row 4,  CTRL,SPACE,...LEFT,DOWN,RIGHT
+	//row 4,  CTRL,SPACE,...LEFT,DOWN,RIGHT
+	{ 0       , 40    , 0x00 } ,
 	{ 22      , 31    , 0x11 } , //COPY
 	{ 36      , 153   , 0x57 } ,   //SPACE
 	{ 171     , 35    , 0x06 } , //INTRO

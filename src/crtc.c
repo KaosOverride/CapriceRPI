@@ -50,7 +50,7 @@ extern byte mode0_table[512], mode1_table[1024];
 #ifdef DEBUG_CRTC
 extern FILE *pfoDebug;
 #endif
-
+extern int CPC_even_frame;
 
 
 void access_video_memory(int repeat_count)
@@ -138,7 +138,7 @@ void access_video_memory(int repeat_count)
 // check hsw ------------------------------------------------------------------
          if (VDU.hdelay == 2) { // ready to trigger VDU HSYNC?
             if (--VDU.hsw_count == 0) {
-               if (CPC.scr_line++ < CPC_SCR_HEIGHT) {
+               if (CPC.scr_line++ < CPC_scr_height) {
                   if (VDU.vcount) { // in the visible portion of the screen?
                      CPC.scr_base += CPC.scr_line_offs; // advance to next line
                   }

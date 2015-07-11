@@ -1,3 +1,4 @@
+
 /* Caprice32 - Amstrad CPC Emulator
    (c) Copyright 1997-2004 Ulrich Doewich
 
@@ -267,6 +268,38 @@ SDL_Surface *video_surface = NULL;
 SDL_Surface *back_surface = NULL;
 SDL_Rect video_rect, back_rect,SDL_rect;
 
+typedef struct
+{
+int width;
+int height;
+int CPC_width;
+int CPC_height;
+int CPC_visible_width;
+int CPC_visible_height;
+int Xscale;
+int Yscale;
+} vid_mode;
+
+vid_mode videomodes[4]={
+//	Dx Dy= Display
+//	Sx Sy=Screen
+//	Vx Vy= Visible Screen 
+//	X,Y=Scale
+//
+//	{ Dx, Dy, Sx, Sy, Vx, Vy,X,Y}
+	{640,480,640,312,320,240,2,2},
+	{768,530,768,312,384,272,2,2},
+	{320,240,320,312,320,240,1,1},
+	{384,265,384,312,384,272,1,1}
+};
+
+int CPC_scr_width;
+int CPC_scr_height;
+int CPC_visible_scr_width;
+int CPC_visible_scr_height;
+int vid_index;
+
+
 dword dwTicks, dwTicksOffset, dwTicksTarget, dwTicksTargetFPS;
 dword dwFPS, dwFrameCount;
 dword dwXScale, dwYScale;
@@ -307,10 +340,10 @@ typedef void (*MH)(dword);
 typedef void (*BH)(void);
 
 MH mode_handler[4] = {
-   draw16bpp_mode0_double,
-   draw16bpp_mode1_double,
-   draw16bpp_mode2_double,
-   draw16bpp_mode0_double,
+   draw16bpp_mode0_half,
+   draw16bpp_mode1_half,
+   draw16bpp_mode2_half,
+   draw16bpp_mode0_half,
 };
 BH border_handler = draw16bpp_border_double;
 
@@ -454,6 +487,16 @@ int cpc_tapeturbo=1;
 int cpc_tapespeeding=0;
 
 extern int keyboard_pos,keyboard_show;
+
+int CPC_even_frame=0;
+int CPC_render_mode=0;
+int CPC_max_render_mode=2;
+int CPC_render_msg_delay=0;
+char CPC_render_mode_desc[3][15]={
+ "PROGRESSIVE",
+ " SCANLINES ",
+ "INTERLACED"
+};
 
 char chAppPath[_MAX_PATH + 1];
 char chROMSelected[_MAX_PATH + 1];
@@ -1129,7 +1172,7 @@ int zip_dir (t_zip_info *zi)
       dwOffset = *(dword *)(pbPtr + 42);
       dwNextEntry = wFilenameLength + *(word *)(pbPtr + 30) + *(word *)(pbPtr + 32);
       pbPtr += 46;
-      char *pchThisExtension = zi->pchExtension;
+      const char *pchThisExtension = zi->pchExtension;
       while (*pchThisExtension != '\0') { // loop for all extensions to be checked
          if (strncasecmp((char *)pbPtr + (wFilenameLength - 4), pchThisExtension, 4) == 0) {
             strncpy(pchStrPtr, (char *)pbPtr, wFilenameLength); // copy filename from zip directory
@@ -2294,35 +2337,48 @@ int tape_insert_voc (char *pchFileName)
 
 void vdu_init (bool bolInit)
 {
-   if (CPC.scr_fs_width > (CPC_VISIBLE_SCR_WIDTH * dwXScale)) {
-      video_rect.x = (CPC.scr_fs_width - (CPC_VISIBLE_SCR_WIDTH * dwXScale)) / 2;
+   if (CPC.scr_fs_width > (CPC_visible_scr_width * dwXScale)) {
+      video_rect.x = (CPC.scr_fs_width - (CPC_visible_scr_width * dwXScale)) / 2;
       video_rect.w = 0; // not used
       back_rect.x = 0;
-      back_rect.w = CPC_VISIBLE_SCR_WIDTH * dwXScale;
+      back_rect.w = CPC_visible_scr_width * dwXScale;
    } else {
       video_rect.x = 0;
       video_rect.w = 0; // not used
-      back_rect.x = ((CPC_VISIBLE_SCR_WIDTH * dwXScale) - CPC.scr_fs_width) / 2;
+      back_rect.x = ((CPC_visible_scr_width * dwXScale) - CPC.scr_fs_width) / 2;
       back_rect.w = CPC.scr_fs_width;
    }
 
-   if (CPC.scr_fs_height > (CPC_VISIBLE_SCR_HEIGHT * dwYScale)) {
-      video_rect.y = (CPC.scr_fs_height - (CPC_VISIBLE_SCR_HEIGHT * dwYScale)) / 2;
+   if (CPC.scr_fs_height > (CPC_visible_scr_height * dwYScale)) {
+      video_rect.y = (CPC.scr_fs_height - (CPC_visible_scr_height * dwYScale)) / 2;
       video_rect.h = 0; // not used
       back_rect.y = 0;
-      back_rect.h = CPC_VISIBLE_SCR_HEIGHT * dwYScale;
+      back_rect.h = CPC_visible_scr_height * dwYScale;
    } else {
       video_rect.y = 0;
       video_rect.h = 0; // not used
-      back_rect.y = ((CPC_VISIBLE_SCR_HEIGHT * dwYScale) - CPC.scr_fs_height) / 2;
+      back_rect.y = ((CPC_visible_scr_height * dwYScale) - CPC.scr_fs_height) / 2;
       back_rect.h = CPC.scr_fs_height;
    }
 
    if (bolInit) {
-      VDU.hstart = 7;
-      VDU.hwidth = CPC_VISIBLE_SCR_WIDTH / 8;
-      VDU.vstart = 27;
-      VDU.vheight = CPC_VISIBLE_SCR_HEIGHT;
+	switch (vid_index)
+	{
+	  case 1:
+	  case 3:
+		VDU.hstart = 7; 
+      		VDU.hwidth = CPC_visible_scr_width / 8;
+      		VDU.vstart = 27;
+       		VDU.vheight = CPC_visible_scr_height;
+		break;
+      	  case 0:
+      	  case 2:
+		VDU.hstart = 11;
+      		VDU.hwidth = CPC_visible_scr_width / 8;
+      		VDU.vstart = 47;
+      		VDU.vheight = CPC_visible_scr_height;
+		break;
+	}
    }
 }
 
@@ -2389,7 +2445,6 @@ int emulator_patch_ROM (void)
 
    return 0;
 }
-
 
 
 void emulator_reset (bool bolMF2Reset)
@@ -2888,6 +2943,78 @@ void audio_resume (void)
    }
 }
 
+/////SET AND CHANGE VIDEO MODES//////////////////////////////////////
+
+
+
+void video_set_style (void)
+{
+   if (dwXScale==2)
+   {
+   switch(CPC_render_mode)
+   {
+      //case 8:
+      	case 1:  //SCANLINES
+
+               mode_handler[0] = draw16bpp_mode0;
+               mode_handler[1] = draw16bpp_mode1;
+               mode_handler[2] = draw16bpp_mode2;
+               mode_handler[3] = draw16bpp_mode0;
+               border_handler = draw16bpp_border;
+	         break;
+
+	case 2:  //INTERLACED
+
+               mode_handler[0] = draw16bpp_mode0_scanplus;
+               mode_handler[1] = draw16bpp_mode1_scanplus;
+               mode_handler[2] = draw16bpp_mode2_scanplus;
+               mode_handler[3] = draw16bpp_mode0_scanplus;
+               border_handler = draw16bpp_border_scanplus;
+	         break;
+
+ 	case 0:  //PROGESS
+
+               mode_handler[0] = draw16bpp_mode0_double;
+               mode_handler[1] = draw16bpp_mode1_double;
+               mode_handler[2] = draw16bpp_mode2_double;
+               mode_handler[3] = draw16bpp_mode0_double;
+               border_handler = draw16bpp_border_double;
+		break;
+
+   }
+
+   CPC_render_msg_delay=150;
+
+  } else {
+               mode_handler[0] = draw16bpp_mode0_half;
+               mode_handler[1] = draw16bpp_mode1_half;
+               mode_handler[2] = draw16bpp_mode2_half;
+               mode_handler[3] = draw16bpp_mode0_half;
+               border_handler = draw16bpp_border_half;
+  }
+
+   if (back_surface) SDL_FillRect(back_surface, NULL, SDL_MapRGB(back_surface->format, 0, 0, 0)); // clear back buffer
+   CPC.scr_line_offs = CPC.scr_bps * dwYScale;
+
+   GateArray.scr_mode =
+   GateArray.requested_scr_mode = (void(*)(dword))mode_handler[GateArray.ROM_config & 3];
+   GateArray.scr_border = (void(*)(void))border_handler;
+}
+
+
+void video_reconfig(int mode)
+{
+	CPC.scr_fs_width=videomodes[mode].width;
+	CPC.scr_fs_height=videomodes[mode].height;
+	CPC_scr_width=videomodes[mode].CPC_width;
+	CPC_scr_height=videomodes[mode].CPC_height;
+	CPC_visible_scr_width=videomodes[mode].CPC_visible_width;
+	CPC_visible_scr_height=videomodes[mode].CPC_visible_height;
+	dwXScale = videomodes[mode].Xscale;
+	dwYScale = videomodes[mode].Yscale;
+	//printf("%i: %ix%i  E%i-%i\n",mode,CPC.scr_fs_width,CPC.scr_fs_height,dwXScale,dwYScale);
+
+}
 
 
 void video_init_tables (void)
@@ -3052,33 +3179,6 @@ int video_set_palette (void)
 
 
 
-void video_set_style (void)
-{
-   switch(CPC.scr_bpp)
-   {
-      //case 8:
-      case 16:
-      case 15:
-               mode_handler[0] = draw16bpp_mode0_double;
-               mode_handler[1] = draw16bpp_mode1_double;
-               mode_handler[2] = draw16bpp_mode2_double;
-               mode_handler[3] = draw16bpp_mode0_double;
-               border_handler = draw16bpp_border_double;
-               dwXScale = 2;
-               dwYScale = 2;
-         break;
-
-   }
-   CPC.scr_line_offs = CPC.scr_bps * dwYScale;
-
-   GateArray.scr_mode =
-   GateArray.requested_scr_mode = (void(*)(dword))mode_handler[GateArray.ROM_config & 3];
-   GateArray.scr_border = (void(*)(void))border_handler;
-}
-
-
-
-
 
 int video_init (void)
 {
@@ -3097,30 +3197,13 @@ CPC.scr_fs_bpp=16;
 int bitspixels;
 bitspixels=CPC.scr_fs_bpp;
 
-
-
-/*   if (!(video_surface = SDL_SetVideoMode(CPC.scr_fs_width, CPC.scr_fs_height, CPC.scr_fs_bpp,
-    flags))) { // attempt to set the required video mode
-      fprintf(stderr, "Could not set requested video mode: %s\n", SDL_GetError());
-      return ERR_VIDEO_SET_MODE;
-   }
-*/
-   if (!(video_surface = SDL_SetVideoMode( CPC.scr_fs_width,CPC.scr_fs_height, CPC.scr_fs_bpp,
+   if (!(video_surface = SDL_SetVideoMode(CPC.scr_fs_width,CPC.scr_fs_height, CPC.scr_fs_bpp,
     flags))) { // attempt to set the required video mode
       fprintf(stderr, "Could not set requested video mode: %s\n", SDL_GetError());
       return ERR_VIDEO_SET_MODE;
    }
 
 
-//SDL_rect.x=32;
-//SDL_rect.w=320;
-//SDL_rect.y=16;
-//SDL_rect.h=240;
-//#ifdef GP2X
-//SDL_GP2X_Display(&SDL_rect);
-//#endif
-
-//CPC.scr_bpp=8;
    CPC.scr_bpp = video_surface->format->BitsPerPixel; // bit depth of the surface
    int iErrCode = video_set_palette(); // init CPC colours and hardware palette (in 8bpp mode)
    if (iErrCode) {
@@ -3129,8 +3212,8 @@ bitspixels=CPC.scr_fs_bpp;
 
    if (!(back_surface = SDL_CreateRGBSurface( // create the back buffer
     SDL_HWSURFACE,
-    CPC_SCR_WIDTH,
-    CPC_SCR_HEIGHT*2,
+    CPC_scr_width,
+    CPC_scr_height*2,
     bitspixels,
     video_surface->format->Rmask,
     video_surface->format->Gmask,
@@ -3153,6 +3236,7 @@ bitspixels=CPC.scr_fs_bpp;
    vdu_init(true); // initialize the monitor emulation
 
    SDL_FillRect(back_surface, NULL, SDL_MapRGB(back_surface->format, 0, 0, 0)); // clear back buffer
+   SDL_FillRect(video_surface, NULL, SDL_MapRGB(video_surface->format, 0, 0, 0)); // clear back buffer
    SDL_ShowCursor(SDL_DISABLE); // hide the mouse cursor
 
    SDL_WM_SetCaption("CapriceRPI2" VERSION_STRING, "CapriceRPI2");
@@ -3176,7 +3260,7 @@ void video_shutdown (void)
 
 
 
-int getConfigValueInt (char* pchFileName, char* pchSection, char* pchKey, int iDefaultValue)
+int getConfigValueInt (char* pchFileName, const char* pchSection, const char* pchKey, int iDefaultValue)
 {
    FILE* pfoConfigFile;
    char chLine[MAX_LINE_LEN + 1];
@@ -3209,7 +3293,7 @@ int getConfigValueInt (char* pchFileName, char* pchSection, char* pchKey, int iD
 
 
 
-void getConfigValueString (char* pchFileName, char* pchSection, char* pchKey, char* pchValue, int iSize, char* pchDefaultValue)
+void getConfigValueString (char* pchFileName, const char* pchSection, const char* pchKey, char* pchValue, int iSize, const char* pchDefaultValue)
 {
    FILE* pfoConfigFile;
    char chLine[MAX_LINE_LEN + 1];
@@ -3710,14 +3794,24 @@ have_TAP = false;
 
 // init input
 
+
+   CPC_even_frame=0;
+   CPC_render_mode=0;
+
+   if (WhichPI()>128)vid_index=1; else vid_index=2;
+   //vid_index=2;
+   video_reconfig(vid_index);
+   //video_set_style(); called from video_init()
+
    if (video_init()) {
       fprintf(stderr, "video_init() failed. Aborting.\n");
                       doCleanUp();
       exit(-1);
    }
 
-   carga_menu();
-   load_keyboard();
+   CPC_render_msg_delay=0;  //no initial renderer advice
+
+   GUI_load();
    intro_cap(argvsplash);
    if (audio_init()) {
       fprintf(stderr, "audio_init() failed. Disabling sound.\n");
@@ -3735,7 +3829,6 @@ have_TAP = false;
       exit(-1);
    }
 
-
 /* TESTING
 
 newrom_load("des1.rom","./rom",12);
@@ -3745,9 +3838,7 @@ newrom_load("sym-romB.rom","./rom",16);
 newrom_load("sym-romC.rom","./rom",17);
 newrom_load("sym-romD.rom","./rom",18);
 
-
-
-/* TESTING*/
+ TESTING*/
 
 	pcjoy_reset();  //Poner a cero el joystick virtual
 
@@ -3798,7 +3889,7 @@ newrom_load("sym-romD.rom","./rom",18);
                         CPC.drvA_zip = 1;
                         have_DSK = true;
 			BootDiskRunCount=600;
-			fprintf(stderr, "DiskAutoboot set.\n");
+			fprintf(stderr, "DiskAutoboot: ");
 
                      }
                      remove(chFileName);
@@ -3811,7 +3902,7 @@ newrom_load("sym-romD.rom","./rom",18);
                      CPC.drvA_zip = 0;
                      have_DSK = true;
 			BootDiskRunCount=600;
-			fprintf(stderr, "DiskAutoboot set.\n");
+			fprintf(stderr, "DiskAutoboot: ");
 
                   } 
                }
@@ -3926,7 +4017,7 @@ newrom_load("sym-romD.rom","./rom",18);
                if (!zip_extract(CPC.drvA_path, chFileName, zip_info.dwOffset)) {
                   dsk_load(chFileName, &driveA, 'A');
 			BootDiskRunCount=600;
-			fprintf(stderr, "DiskAutoboot set.\n");
+			fprintf(stderr, "DiskAutoboot: ");
 
                   remove(chFileName);
                }
@@ -3939,7 +4030,7 @@ newrom_load("sym-romD.rom","./rom",18);
          strncat(chFileName, CPC.drvA_file, sizeof(chFileName)-1 - strlen(chFileName));
          dsk_load(chFileName, &driveA, 'A');
 			BootDiskRunCount=600;
-			fprintf(stderr, "DiskAutoboot set.\n");
+			fprintf(stderr, "DiskAutoboot: ");
 
       }
    }
@@ -4159,17 +4250,28 @@ if (keyboard_show){
                               doCleanUp();
                               exit(-1);
                            }
+	   		   CPC_render_msg_delay=0;
                            audio_resume();
                            break;
 
-                        case CAP32_VKEY: //F9
-                              keyboard_show=1;
+			case SDLK_F2:	//Test vidmode change
+                           audio_pause();
+                           SDL_Delay(20);
+                           video_shutdown();
+			   vid_index++;
+			   if (vid_index>3) vid_index=0;
+			   CPC_render_mode=0;
+                           video_reconfig(vid_index);
+			   if (video_init()) 
+	                           {
+	                              fprintf(stderr, "video_init() failed. Aborting.\n");
+	                              doCleanUp();
+	                              exit(-1);
+	                           }
+			   GUI_reload();
+                           audio_resume();
+	   		   CPC_render_msg_delay=0;
                            break;
-
-
-                        case CAP32_OPTIONS:   //F8
-                             icomenu_vis(argvpausescreen);
-                             break;
 
 			case SDLK_F3:	//Reset
 				emulator_reset(false);
@@ -4196,21 +4298,39 @@ if (keyboard_show){
 
                            break;
 
-                        case CAP32_EXIT:  //F10
-															emulatorend=1;
-                           break;
+			case SDLK_F6:			//VOL --
+				CPC.snd_volume = CPC.snd_volume - 10;
+				if (CPC.snd_volume < 1) CPC.snd_volume = 0;  //<1 porque no lo coge como <0          O_o
+				Calculate_Level_Tables();
+			   	break;
 
 			case SDLK_F7:			//VOL ++
 				CPC.snd_volume = CPC.snd_volume+10;
 				if (CPC.snd_volume > 100) CPC.snd_volume = 100;
 				Calculate_Level_Tables();
-			   break;
+			   	break;
 
-			case SDLK_F6:			//VOL --
-				CPC.snd_volume = CPC.snd_volume - 10;
-				if (CPC.snd_volume < 1) CPC.snd_volume = 0;  //<1 porque no lo coge como <0          O_o
-				Calculate_Level_Tables();
-			   break;
+                        case CAP32_VKEY: //F9
+				keyboard_show=1;
+				break;
+
+
+                        case CAP32_OPTIONS:   //F8
+				icomenu_vis(argvpausescreen);
+				break;
+
+                        case CAP32_EXIT:  //F10
+				emulatorend=1;
+				break;
+
+			case SDLK_F11:	//Change draw routines
+				if (dwXScale>1)
+				{
+					CPC_render_mode++;
+					if (CPC_render_mode>CPC_max_render_mode) CPC_render_mode=0;
+					   video_set_style();
+                             	}
+				break;
 
                         case CAP32_SPEED:  //F12
                            if (event.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL)) 
@@ -4221,16 +4341,16 @@ if (keyboard_show){
                            }
                            break;
                       }//Keys switch
-                  }//if paused
+                    }//if paused
 
                   }//if vismenu
 
                   break;
-		       }
+		}
 
 
             case SDL_QUIT:
-									emulatorend=1;
+		emulatorend=1;
          }
       }
       
@@ -4244,7 +4364,7 @@ if (keyboard_show){
 		}else{
 		if (BootDiskRunCount==1)
 			{
-			fprintf(stderr, "DiskAutoboot do.\n");
+			fprintf(stderr, " Start.\n");
 
 			CPC_BootStartDisk(driveA);
 			BootDiskRunCount=0;
@@ -4264,7 +4384,7 @@ if (keyboard_show){
 		}else{
 		if (BootTapeRunCount==1)
 			{
-		fprintf(stderr, "TapeAutoboot do.\n");
+			fprintf(stderr, "TapeAutoboot do.\n");
 
 			CPC_BootStartTape();
 			BootTapeRunCount=0;
@@ -4296,9 +4416,8 @@ if (keyboard_show){
  
          if (( (CPC.limit_speed) && (!(cpc_tapeturbo && CPC.tape_motor)) ) && (iExitCondition == EC_CYCLE_COUNT)) {
             int iTicksAdj = 0; // no adjustment necessary by default
-            
-   
-            
+
+
             if (CPC.snd_enabled) {
                if (pbSndStream < CPC.snd_bufferptr) {
                   dwSndDist = CPC.snd_bufferptr - pbSndStream; // determine distance between play and write cursors
@@ -4331,6 +4450,16 @@ if (keyboard_show){
 
          if (iExitCondition == EC_FRAME_COMPLETE) { // emulation finished rendering a complete frame?
             dwFrameCount++;
+		CPC_even_frame=!CPC_even_frame;
+
+	    if (dwXScale>1)
+		{
+
+		   if ((CPC_render_msg_delay>0) || (CPC.scr_fps)){
+ 			print((dword *)back_surface->pixels + (CPC.scr_line_offs*8)+15+200, CPC_render_mode_desc[CPC_render_mode], true); // display the frames per second counter
+			CPC_render_msg_delay--;
+		   }
+		}
             if (CPC.scr_fps) {
 //            if (CPC.scr_fps) {
                char chStr[15];
@@ -4411,18 +4540,8 @@ if (keyboard_show){
 
    }
   }
-//   printf("\n\nEmulation Quit \t\t Starting\n");
-//   fprintf(stderr,"Emulation Quit \t\t Starting\n");
-             unload_keyboard();   
-//   printf("V Keyboard \t\t Stopped\n");
-   
-             descarga_menu();
-//   printf("Menu system \t\t Stopped\n");
-                doCleanUp();
-//   if (argvgp2xmenu){
-//				chdir("/usr/gp2x");
-//				execl("/usr/gp2x/gp2xmenu", "/usr/gp2x/gp2xmenu", NULL);
-//       		}
-//   printf("CLEAN EXIT \t\t OK\n");
+
+GUI_unload();
+
 exit(0);
 }

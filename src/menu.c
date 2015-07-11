@@ -21,9 +21,9 @@ Menu System for CapriceGP2x by KaosOverride based on NK's file manager GUI
 #include "SDL_image.h"
 #include "autotype.h"
 #include "gui/gui_bmp.h"
+#include "vjoystick.h"
 #include "videodraw/SDL_rotozoom.h"
 #include "videodraw/SDL_rotozoom.c"
-#include "vjoystick.h"
 
 
 //externals
@@ -41,6 +41,8 @@ extern int cpc_tapeturbo;
 extern int cpc_tapespeeding;
 
 extern int emulatorend;
+
+extern int dwXScale,dwYScale;
 
 SDL_Surface *portada, *montaje_zoom, *montaje,*menu,*fich,*zipo,*carga,*carpa, *fondo, *snapa , *tapa, *disca = NULL;
 SDL_Surface *key_normal, *key_press, *keyboard_surface = NULL;
@@ -61,13 +63,20 @@ void menu_blit (void)
 
 	//AQUI SE HA DE BLITEAR CON ZOOM
 
-  montaje_zoom = zoomSurface(montaje,2,2,0);
+  montaje_zoom = zoomSurface(montaje,dwXScale,dwYScale,0);
 
 
+/*
   montaje_region.x=64;
   montaje_region.y=25;
   montaje_region.w=640;
   montaje_region.h=480;
+*/
+  	montaje_region.x=(back_surface->w-montaje_zoom->w)/2;
+  	montaje_region.y=(video_surface->h-montaje_zoom->h)/2;
+  	montaje_region.w=montaje_zoom->w;
+  	montaje_region.h=montaje_zoom->h;
+
 
 
    SDL_BlitSurface(montaje_zoom, NULL, video_surface, &montaje_region);  //180-240
@@ -247,10 +256,10 @@ const struct {
 	char szExt[4];
 	int nExtId;
 } stExtentions[] = {        
-	{ "zip", EXT_ZIPPED },
 	{ "sna", EXT_SNAP },
 	{ "dsk", EXT_DSK },
 	{ "cdt", EXT_TAPE },
+	{ "zip", EXT_ZIPPED },
 	{ "\0", EXT_UNKNOWN }
 };
      
@@ -336,7 +345,7 @@ void getDir(const char *path, int updir) {
 					if(prev_len != 0) {
 						prev_dir[prev_len++] = '/';
 						prev_dir[prev_len] = '\0';
-						printf("Filer: Prev Dir: %s\n", prev_dir);
+//						printf("Filer: Prev Dir: %s\n", prev_dir);
 					}
 					open_path[i] = '\0';
 					updir = 0;
@@ -406,69 +415,73 @@ void getDir(const char *path, int updir) {
 
 
 
-void drawlist(char *extension) {
+void drawlist(char *extension) 
+{
 	int y = 50;
 	int i;
 	SDL_Rect dstrect;
 	dstrect.x = 20;
-	if(nfiles > 5) {
-		if((draw_pos + 4) < cur_pos)
-			draw_pos = cur_pos - 4;
-		if(draw_pos > cur_pos)
-			draw_pos = cur_pos;
+	if(nfiles > 5) 
+	{
+		if((draw_pos + 4) < cur_pos) 	draw_pos = cur_pos - 4;
+		if(draw_pos > cur_pos) 		draw_pos = cur_pos;
 	}
-         
-	
-	SDL_BlitSurface(fondo, NULL, montaje, NULL);
-   SDL_UpdateRect(montaje, 0,0,0,0);
 
-			switch(getExtId(extension)) {
-			case EXT_TAPE:
-                 displaytext( 98, 25 ," CASSETE LOAD", getfontcolor(250, 250, 0)); 			
+	SDL_BlitSurface(fondo, NULL, montaje, NULL);
+   	SDL_UpdateRect(montaje, 0,0,0,0);
+
+		switch(getExtId(extension)) 
+		{
+		case EXT_TAPE:
+				displaytext( 98, 25 ," CASSETE LOAD", getfontcolor(250, 250, 0));
 				break;
-			case EXT_DSK:
-                 displaytext( 98, 25 ," FLOPPY LOAD", getfontcolor(250, 250, 0)); 			
+		case EXT_DSK:
+				displaytext( 98, 25 ," FLOPPY LOAD", getfontcolor(250, 250, 0));
 				break;
-            case EXT_SNAP:
-                 displaytext( 98, 25 ,"SNAPSHOT LOAD", getfontcolor(250, 250, 0)); 			
+		case EXT_SNAP:
+				displaytext( 98, 25 ,"SNAPSHOT LOAD", getfontcolor(250, 250, 0));
 				break;
-			}
+		}
 
 //	SDL_FillRect(list, NULL, LIST_COLORKEY);
 
-	for(i=draw_pos;(i<nfiles) && (y < 200);i++, y+=25){
-		if(i == cur_pos)
+	for(i=draw_pos;(i<nfiles) && (y < 200);i++, y+=25)
+	{
+
+	if(i == cur_pos)     	displaytext( 50, y ,files[i].name, getfontcolor(250, 0, 0)); 
 //			printU8(list, 50, y + 8, files[i].name, 0x0000);
-     		displaytext( 50, y ,files[i].name, getfontcolor(250, 0, 0)); 
-		else
+	else
 //			printU8(list, 50, y + 8, files[i].name, 0xFFFF);
-     		displaytext( 50, y ,files[i].name, getfontcolor(250, 250, 0)); 			
-		dstrect.y = y;
-		if(files[i].isdir)
-			SDL_BlitSurface(carpa, NULL, montaje, &dstrect);
+     	displaytext( 50, y ,files[i].name, getfontcolor(250, 250, 0));
+
+	dstrect.y = y;
+
+	if(files[i].isdir)
+		SDL_BlitSurface(carpa, NULL, montaje, &dstrect);
 
 		else
-			switch(getExtId(files[i].name)) {
-                                            
+		switch(getExtId(files[i].name)) 
+		{
+
 			case EXT_DSK:
 				SDL_BlitSurface(disca, NULL, montaje, &dstrect);
 				break;
-                                            
+
 			case EXT_TAPE:
 				SDL_BlitSurface(tapa, NULL, montaje, &dstrect);
 				break;
-            case EXT_SNAP:
+			case EXT_SNAP:
 				SDL_BlitSurface(snapa, NULL, montaje, &dstrect);
 				break;
 			case EXT_ZIPPED:
 				SDL_BlitSurface(zipo, NULL, montaje, &dstrect);
-            default:
+			default:
 				SDL_BlitSurface(fich, NULL, montaje, &dstrect);
 				break;
 
-				break;
-			}
+		}
 	}
+
    SDL_UpdateRect(montaje, 0,0,0,0);
 //	SDL_BlitSurface(list, NULL, video_surface, NULL);
 
@@ -481,6 +494,7 @@ int eventloop(void) {
 	int flag = 0;
 	static int move_dir = 0;
 	static Uint32 move_tick = 0;
+	move_dir = 0;
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
 //////////////
@@ -489,121 +503,124 @@ int eventloop(void) {
 		case SDL_JOYBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
 
+				move_dir = 0;
+				pcjoy_update (event);
+
+				if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
+					{		//Action UP
+					cur_pos--;
+					redraw=1;
+					move_dir = -1;
+					move_tick = 0;
+					break;
+					};
+
+				if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
+					{		//Action DOWN
+					cur_pos++;
+					redraw=1;			     
+					move_dir = 1;
+					move_tick = 0;
+					break;	
+					};
+
+				if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
+					{		//Action LEFT
 					move_dir = 0;
-					pcjoy_update (event);
+					getDir(open_path, 1);
+					break;
+					};
 
-		if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
-												{		//Action UP
-													cur_pos--;
-													redraw=1;
-													move_dir = -1;
-													move_tick = 0;
-													break;
-													};
-		if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
-												{		//Action DOWN
-													cur_pos++;
-													redraw=1;			     
-													move_dir = 1;
-													move_tick = 0;
-													break;	
-												};
-		if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
-												{		//Action LEFT
-													move_dir = 0;
-													getDir(open_path, 1);
-													break;
-												};
-		if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
-												{		//Action RIGHT
-													if(files[cur_pos].isdir){
-														strcat(open_path, files[cur_pos].name);
-														getDir(open_path, 0);
-														move_dir = 0;
-														cur_pos = 0;
-														draw_pos = 0;
-														redraw = 1;
-												} else {
-														flag = 1;
-												}
-												break;
+				if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
+					{		//Action RIGHT
+					if(files[cur_pos].isdir){
+						strcat(open_path, files[cur_pos].name);
+						getDir(open_path, 0);
+						move_dir = 0;
+						cur_pos = 0;
+						draw_pos = 0;
+						redraw = 1;
+					} else {
+						flag = 1;
+					}
+					break;
+					};
 
-												};
-
-		if (event.type == SDL_JOYBUTTONDOWN )		
-			{
+				if (event.type == SDL_JOYBUTTONDOWN )		
+				{
 				switch (event.jbutton.button)  	
 				{
 					case SDL_JoyFire1:		//Accion seleccionar
-								if(files[cur_pos].isdir)
-								{
-									strcat(open_path, files[cur_pos].name);
-									getDir(open_path, 0);
-									move_dir = 0;
-									cur_pos = 0;
-									draw_pos = 0;
-									redraw = 1;
-								} else {
-									flag = 1;
-								}
-								break;
+						if(files[cur_pos].isdir)
+						{
+							strcat(open_path, files[cur_pos].name);
+							getDir(open_path, 0);
+							move_dir = 0;
+							cur_pos = 0;
+							draw_pos = 0;
+							redraw = 1;
+						} else {
+							flag = 1;
+						}
+						break;
 					case SDL_JoyFire2:
-								move_dir = 0;
-								getDir(open_path, 1);
-								break;
+						move_dir = 0;
+						getDir(open_path, 1);
+						break;
 					case SDL_JoyFire4:		// Accion salir ;
-								flag = 2;
-								break;
+						flag = 2;
+						break;
 				}
 			}
          		break;
 
 ///////////////
 			case SDL_KEYDOWN:
-			switch (event.key.keysym.sym) {
-			case SDLK_PAGEUP:
-                 cur_pos=cur_pos-5;
-                 redraw=1;
-//				move_dir = -1;
-//				move_tick = 0;
-				break;
-			case SDLK_PAGEDOWN:
-			     cur_pos=cur_pos+5;
-                 redraw=1;			     
-//				move_dir = 1;
-//				move_tick = 0;
-				break;
+				switch (event.key.keysym.sym) {
+					case SDLK_PAGEUP:
+        					cur_pos=cur_pos-5;
+        					redraw=1;
+//						move_dir = -1;
+//						move_tick = 0;
+						break;
+					case SDLK_PAGEDOWN:
+						cur_pos=cur_pos+5;
+						redraw=1;
+//						move_dir = 1;
+//						move_tick = 0;
+						break;
 				
 
 			case SDLK_UP:
-									cur_pos--;
-									redraw=1;
-									move_dir = -1;
-									move_tick = 0;
-									break;
+				cur_pos--;
+				redraw=1;
+				move_dir = -1;
+				move_tick = 0;
+				break;
 			case SDLK_DOWN:
-									cur_pos++;
-									redraw=1;			     
-									move_dir = 1;
-									move_tick = 0;
-									break;
+				cur_pos++;
+				redraw=1;
+				move_dir = 1;
+				move_tick = 0;
+				break;
 			case SDLK_LEFT:
-									move_dir = 0;
-									getDir(open_path, 1);
-									break;
+				move_dir = 0;
+				getDir(open_path, 1);
+				break;
 			case SDLK_RIGHT:
 			case SDLK_RETURN:
-					if(files[cur_pos].isdir){
-									strcat(open_path, files[cur_pos].name);
-									getDir(open_path, 0);
-									move_dir = 0;
-									cur_pos = 0;
-									draw_pos = 0;
-									redraw = 1;
-						} else {
-									flag = 1;
-						}
-									break;
+				if(files[cur_pos].isdir)
+				{
+					strcat(open_path, files[cur_pos].name);
+					getDir(open_path, 0);
+					move_dir = 0;
+					cur_pos = 0;
+					draw_pos = 0;
+					redraw = 1;
+				} else {
+					flag = 1;
+				}
+				break;
 			case SDLK_ESCAPE:
 			case 'q':
 				flag = 2;
@@ -697,38 +714,39 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 	cur_pos = 0;
 	draw_pos = 0;
 	redraw = 1;
-	while((flag = eventloop()) == 0) {
-		if(redraw) {
-            drawlist(ext);
-            menu_blit();
-		    //SDL_Delay (1000);
+	while((flag = eventloop()) == 0)
+	{
+		if(redraw) 
+		{
+			drawlist(ext);
+			menu_blit();
+			//SDL_Delay (1000);
 			redraw = 0;
 		}
 	}
 //	printf("Saliendo del selector con: %s\n", cur_path );
 
-	if(flag == 1) {
+	if(flag == 1) 
+	{
 		// Load SNAP...
-		if(carga) {
-			if( (carga->w < 320) || (carga->h < 240) ) {
+		if(carga) 
+		{
+			if( (carga->w < 320) || (carga->h < 240) ) 
+			{
 				SDL_Rect dstrect;
 				dstrect.w = carga->w;
 				dstrect.h = carga->h;
-				if(dstrect.w < 320)
-					dstrect.x = (video_surface->w - dstrect.w) >> 1;
-				else
-					dstrect.x = 0;
-				if(dstrect.h < 240)
-					dstrect.y = (video_surface->h - dstrect.h) >> 1;
-				else
-					dstrect.y = 0;
+				if(dstrect.w < 320)	dstrect.x = (video_surface->w - dstrect.w) >> 1;
+				else			dstrect.x = 0;
+
+				if(dstrect.h < 240)	dstrect.y = (video_surface->h - dstrect.h) >> 1;
+				else			dstrect.y = 0;
 
 				SDL_BlitSurface(carga, NULL, video_surface, &dstrect);
 			} else {
 				SDL_BlitSurface(carga, NULL, video_surface, NULL);
 			}
-            SDL_UpdateRect(video_surface, 0, 0,0,0); 
-
+            		SDL_UpdateRect(video_surface, 0, 0,0,0); 
 			SDL_Delay(1000);
 
 		}
@@ -1294,120 +1312,122 @@ int eventloop_menu(int menu_type) {
 	int make_option=0;
 	int flag = 0;
 	static int move_dir = 0;
-	while(SDL_PollEvent(&event)) {
-		switch(event.type) {
+	move_dir = 0;
+
+	while(SDL_PollEvent(&event)) 
+	{
+	switch(event.type) 
+		{
 
 //////////////
 
-    case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 		case SDL_JOYBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
-									move_dir = 0;
+				move_dir = 0;
+				pcjoy_update (event);
+				if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
+				{		//Action UP
+					cur_menupos--;
+					redraw=1;
+					move_dir = -1;
+					break;
+				};
+				if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
+				{		//Action DOWN
+					cur_menupos++;
+					redraw=1;			     
+					move_dir = 1;
+					break;
+				};
+                  		if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
+				{		//Action LEFT
+					flag = 1;
+				};
+				if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
+				{		//Action RIGHT
+					redraw=1;
+					make_option=1;
+					move_dir = 0;
+					break;
+				};
 
-                  pcjoy_update (event);
-                  if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
-												{		//Action UP
-													cur_menupos--;
-													redraw=1;
-													move_dir = -1;
-													break;
-												};
-									if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
-												{		//Action DOWN
-													cur_menupos++;
-													redraw=1;			     
-													move_dir = 1;
-													break;
-												};
-                  if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
-												{		//Action LEFT
-																flag = 1;
-
-												};
-									if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
-												{		//Action RIGHT
-													redraw=1;
-													make_option=1;
-													move_dir = 0;
-													break;
-
-												};
-					
-							if (event.type == SDL_JOYBUTTONDOWN )		
-							{		
-							 switch (event.jbutton.button)  	
-									{	 
-									case SDL_JoyFire1:
-											//Accion seleccionar
-											redraw=1;
-											make_option=1;
-											move_dir = 0;
-											break;
-									case SDL_JoyFire4:
-											// Accion salir ;
-											flag = 2;
-											break;
-									}
-							}								
-         break;
+				if (event.type == SDL_JOYBUTTONDOWN )
+				{
+				 switch (event.jbutton.button)
+					{
+					case SDL_JoyFire1:	//Accion seleccionar
+						redraw=1;
+						make_option=1;
+						move_dir = 0;
+						break;
+					case SDL_JoyFire4:	// Accion salir ;
+						flag = 2;
+						break;
+					}
+				}
+         			break;
 
 ///////////////
 
 		case SDL_KEYDOWN:
 			switch (event.key.keysym.sym) {
-			case SDLK_UP:
-									cur_menupos--;
-									redraw=1;
-									move_dir = -1;
-									break;
-			case SDLK_DOWN:
-									cur_menupos++;
-									redraw=1;			     
-									move_dir = 1;
-									break;
-			case SDLK_RETURN:
-			case SDLK_RIGHT:
-				redraw=1;
-				make_option=1;
-				move_dir = 0;
-				break;
-			case SDLK_LEFT:
-
-				flag = 1;
-				break;
-			case SDLK_ESCAPE:
-			case 'q':
-				flag = 2;
-				break;
-/*			case 'z':
-				prevskin();
-				break;
-			case 'x':
-				nextskin();
-				break;*/
-			default:
-				break;
+				case SDLK_UP:
+					cur_menupos--;
+					redraw=1;
+					move_dir = -1;
+					break;
+				case SDLK_DOWN:
+					cur_menupos++;
+					redraw=1;
+					move_dir = 1;
+					break;
+				case SDLK_RETURN:
+				case SDLK_RIGHT:
+					redraw=1;
+					make_option=1;
+					move_dir = 0;
+					break;
+				case SDLK_LEFT:
+					flag = 1;
+					break;
+				case SDLK_ESCAPE:
+				case 'q':
+					flag = 2;
+					break;
+/*				case 'z':
+					prevskin();
+					break;
+				case 'x':
+					nextskin();
+					break;*/
+				default:
+					break;
 			}
 			break;
 		case SDL_KEYUP:
 			switch (event.key.keysym.sym) {
-			case SDLK_UP:
-			case SDLK_DOWN:
-				move_dir = 0;
-				break;
-			default:
-				break;
-			}
+				case SDLK_UP:
+				case SDLK_DOWN:
+					move_dir = 0;
+					break;
+				default:
+					break;
+				}
 			break;
 		}
- if (make_option !=0){
-                 make_option=0;
-                 
-                 switch (menu_type){               
+
+
+
+ 	if (make_option !=0)
+	{
+ 	make_option=0;
+
+                 switch (menu_type){
                         case MENU_DISK:
                                   flag=menu_eval_disc(cur_menupos);
                                   redraw=1;
-                                  break;                 
+                                  break;
                         case MENU_TAPE:
                                   flag=menu_eval_tape(cur_menupos);
                                   redraw=1;
@@ -1434,16 +1454,6 @@ int eventloop_menu(int menu_type) {
 			if(cur_menupos < 0) cur_menupos = maxopt_menucurrent-1;
 	return flag;
 }
-
-/*
-enum {    
-	MENU_DISK,
-	MENU_TAPE,
-	MENU_SNAP,
-	MENU_OPT,
-	MENU_UNKNOWN  
-};
-*/
 
 
 
@@ -2231,10 +2241,40 @@ void set_transpa (SDL_Surface *source )
 }
 
 
-void carga_menu()
+unsigned int WhichPI()
+{
+ FILE * filp;
+ unsigned rev;
+ char buf[512];
+ char term;
+
+ rev = 0;
+
+ filp = fopen ("/proc/cpuinfo", "r");
+
+ if (filp != NULL)
+ {
+ 	while (fgets(buf, sizeof(buf), filp) != NULL)
+ 	{
+ 	if (!strncasecmp("revision\t", buf, 9))
+ 	{
+ 		if (sscanf(buf+strlen(buf)-5, "%x%c", &rev, &term) == 2)
+ 		{
+ 		if (term == '\n') break;
+ 		rev = 0;
+ 		}
+ 	}
+ 	}
+ 	fclose(filp);
+ }
+ return rev;
+}
+
+
+
+void menu_init()
 {
 //SDL_Surface *menu,*fich,*zipo,*carga,*carpa = NULL;
-
 
 
 menu = load_image_include(menucpc_bmp, menucpc_bmp_size);// "gui/menucpc.bmp");
@@ -2271,16 +2311,6 @@ fondo = load_image_include( back_bmp,back_bmp_size );//"gui/back.bmp");
 	if (fondo == NULL)
 		printf("Menu error: %s", SDL_GetError());
 
-/*montaje_zoom = SDL_CreateRGBSurface (
-		SDL_SWSURFACE,
-		640,
-		480,
-		montaje->format->BitsPerPixel,
-		montaje->format->Rmask,
-		montaje->format->Gmask,
-		montaje->format->Bmask,
-		montaje->format->Amask)
-*/
 
 //set_transpa(fondo);
 set_transpa(menu);
@@ -2301,7 +2331,7 @@ setupfonts();
 
 
 
-void descarga_menu()
+void menu_shutdown()
 {
 shutdownfonts();
 //Free the images 
@@ -2377,7 +2407,6 @@ shutdownfonts(); //Apagar fuentes
                       Keyboard
 */
 
-#define KEYBOARD_SCALE	2
 
 int vkey_pressed,vkey_shift_pressed,vkey_control_pressed=0;
 
@@ -2392,7 +2421,8 @@ void load_keyboard()
 	if (montaje_zoom == NULL)
 		printf("Keyboard error: Create virtual surface %s", SDL_GetError());
 
-	tmpImage = zoomSurface(montaje_zoom,KEYBOARD_SCALE,KEYBOARD_SCALE,0);
+	tmpImage = zoomSurface(montaje_zoom,dwXScale,dwYScale,0);
+//	printf("-Key1-X:%i  Y:%i\n",dwXScale,dwYScale);
 	keyboard_surface = SDL_DisplayFormat( tmpImage );
 
 
@@ -2405,7 +2435,7 @@ void load_keyboard()
 	if (montaje_zoom == NULL)
 		printf("Keyboard error: Normal keys bmp %s", SDL_GetError());
 
-	tmpImage = zoomSurface(montaje_zoom,KEYBOARD_SCALE,KEYBOARD_SCALE,0);
+	tmpImage = zoomSurface(montaje_zoom,dwXScale,dwYScale,0);
 	key_normal = SDL_DisplayFormat( tmpImage );
 
 
@@ -2417,7 +2447,7 @@ void load_keyboard()
 	if (montaje_zoom == NULL)
 		printf("Keyboard error: Pressed keys bmp %s", SDL_GetError());
 
-	tmpImage = zoomSurface(montaje_zoom,KEYBOARD_SCALE,KEYBOARD_SCALE,0);
+	tmpImage = zoomSurface(montaje_zoom,dwXScale,dwYScale,0);
 	key_press = SDL_DisplayFormat( tmpImage );
 
    	if (montaje_zoom != NULL) SDL_FreeSurface( montaje_zoom); 
@@ -2440,10 +2470,10 @@ SDL_FreeSurface( keyboard_surface);
 void    blit_pressed_key(int k_row, int k_col, int off_x, int off_y)
 {
 	SDL_Rect Offset,keybmp;
-	keybmp.x=((k_col*17)+virtualkeys[k_row][k_col].xdesp)*KEYBOARD_SCALE;
-	keybmp.y=k_row*17*KEYBOARD_SCALE;
-	Offset.w=keybmp.w=(virtualkeys[k_row][k_col].xlong)*KEYBOARD_SCALE;
-	Offset.h=keybmp.h=18*KEYBOARD_SCALE;
+	keybmp.x=((k_col*17)+virtualkeys[k_row][k_col].xdesp)*dwXScale;
+	keybmp.y=k_row*17*dwYScale;
+	Offset.w=keybmp.w=(virtualkeys[k_row][k_col].xlong)*dwXScale;
+	Offset.h=keybmp.h=18*dwYScale;
 
 	Offset.x=keybmp.x+off_x;
 	Offset.y=keybmp.y+off_y;
@@ -2775,3 +2805,22 @@ int vkey_move=VKEY_NONE;
 
 }
 
+void GUI_load()
+{
+             load_keyboard();   
+             menu_init();
+}
+
+void GUI_unload()
+{
+             unload_keyboard();   
+             menu_shutdown();
+}
+
+void GUI_reload()
+{
+             unload_keyboard();
+             menu_shutdown();
+             load_keyboard();   
+             menu_init();
+}
