@@ -1,0 +1,79 @@
+For static SDl libs you need:
+
+
+Create this dir tree into capriceRPI source:
+
+   src/SDL/
+           bin
+           include/SDL
+           lib
+
+Download SDL 1.2.15, SDL_ttf and SDL_image. Best SDL-1.2.15 with DISPMANX
+ for RPI can be found at: https://github.com/vanfanel/SDL-1.2.15-raspberrypi
+   TIPS:
+	-Configure for destination dir the SDL one into the 
+	 capriceRPI src
+	   Example:
+		export INSTALLDIR=$HOME/sources/capriceRPI/src/SDL
+		export PATH=$INSTALLDIR/bin:$PATH
+
+	-Compile for RPI1 and you get compatible libs for RPI1 and RPI2:
+
+		CFLAGS="-O3 -mfpu=vfp -mfloat-abi=hard -march=armv6j" ./configure 
+
+	-From vanfanel's SDL use the RPI1 config script to make SDL
+	 compatible for both RPI1 and RPI2. Also edit it to enable
+	 X11 support if you want.
+
+
+Compile SDL, SDL_ttf and SDL_image  (make)
+
+Install SDL, SDL_image and SDL_ttf into the src/SDL  (make install)
+
+Do:
+
+ make -f makefile.static
+
+Enjoy!
+
+
+-----------------------------------------------------
+
+Para librerias SDL estaticas necesitaras:
+
+Crear este arbol de directorios en los fuentes del capriceRPI:
+
+   src/SDL/
+           bin
+           include/SDL
+           lib
+
+Descargar fuentes de SDL 1.2.15, SDL_ttf y SDL_image. El mejor SDL-1.2.15
+ con soporte DISPMANX para RPI puede encontrarse en https://github.com/vanfanel/SDL-1.2.15-raspberrypi
+   PISTAS:
+	-Configura para directorio destino el SDL en el fuente
+	 del capriceRPI
+	   Ejemplo:
+		export INSTALLDIR=$HOME/sources/capriceRPI/src/SDL
+		export PATH=$INSTALLDIR/bin:$PATH
+
+	-Compila para RPI1 y asi conseguir librerias compatibles
+	 para RPI1 y RPI2:
+
+		CFLAGS="-O3 -mfpu=vfp -mfloat-abi=hard -march=armv6j" ./configure 
+
+	-Del SDL de vanfanel usa el script de configuracion para RPI1
+	 para hacer el SDL compatible para RPI1 y RPI2. Tambien lo puedes
+	 editar para activar el soporte de X11 si quieres
+
+
+Compila SDL, SDL_ttf and SDL_image (make)
+
+Instala SDL, SDL_image and SDL_ttf en el src/SDL (make install)
+
+Ahora haz:
+
+ make -f makefile.static
+
+Y disfruta!
+

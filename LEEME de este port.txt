@@ -1,0 +1,109 @@
+Caprice RPI2 V0.1 - W.I.P. 1 - Adapted/ported by KaosOverride 2015
+(Caprice32 4.1.0 for Raspberry PI2)
+
+Caprice32 - Amstrad CPC Emulator
+(c) Copyright 1997-2004 Ulrich Doewich
+
+-Gestor de ficheros de NK (port de Snes9x a GP2x)
+-Auto escritura de Kevin Thacker (Arnold CPC emu) con modificaciones de Troels K para Caprice
+-Skin de Antiriad para CapriceGP2x
+_____________________________________________________________________________________________________
+
+Caracteristicas:
+
+-Nucleo de emulacion GPL Caprice32 4.1.0 de Ulrich Doewich
+-Ejecutable monolitico portable, sin dependencias de ficheros externos (ROMs de sistema, skins, etc) 
+-Lincaje estatico de libreria SDL compatible con escalado hardware de Raspberry PI
+-Autoconfigurable para frontends y lanzadores (6128 por defecto, 464 para cintas) con soporte parcial de autoejecucion de comandos de inicio de cintas o discos.
+-Soporte para 2 joysticks, y hasta del no oficial Fire 3, redefinible como tecla por muchos juegos.
+-Menues navegables y teclado CPC virtual. Usa completamente el CPC desde joystick!!!
+-Soporta DSK, CDT y SNA desde menues y linea de comandos. Ideal para frontends y launchers
+
+Por hacer:
+-Terminar autoejecucion en DSKs. por ahora solo con carga |CPM. Autoejecucion CDT finalizada, con carga acelerada x5 :)
+-Optimizar teclado virtual. Frena un 20% la emulacion. (Causa localizada)
+-Pruebas en RPI 1
+-Mejorar manejo de los menues
+_____________________________________________________________________________________________________
+
+Opciones
+
+Emulacion principal
+===================
+F1:  (X11) Pantalla completa (Sin escalado) Ideal para salida en video compuesto de la RPI2
+F3:  Reset
+F4:  Start/Stop motor de cinta
+F5:  Inicar carga cinta con RUN" o |TAPE:RUN"segun modelo 
+F6:  Volumen --
+F7:  Volumen ++
+F8:  Menu de opciones
+F9:  Teclado virtual (+CTRL Cambiar posicion arriba/abajo)
+F10: Salir
+F12: Mostrar FPS / INFO (+CTRL Cambiar de tiempo real a "lo mas rapido que pueda" 
+
+Joystick:
+  Fire 4: Menu de opciones
+  Fire 5: Teclado Virtual
+  Fire 6: Mostrar FPS / INFO
+
+Menu de opciones
+================
+Iconos:
+ Disquete:	Menu discos
+ Cinta:		Menu cintas
+ Chip:		Menu Snapshots
+ Tuerca:	Menu configuracion
+ Boton rojo:	Salir
+
+Seleccionar con cursores + Entrar o Joystick + Fire 1
+F8 o Fire 4 vuelve a la emulacion. 
+
+Submenues
+---------
+Arriba/abajo (cursores/joystick) navega por opciones
+Derecha (cursores/joystick), Entrar o Fire 1 selecciona opcion
+Izquierda (cursores/joystick), ESC o Fire 4 vuelve a la emulacion o submenu anterior. 
+
+Selectores de ficheros
+----------------------
+Arriba/abajo (cursores/joystick) navega por opciones
+Derecha (cursores/joystick), Entrar o Fire 1 selecciona fichero o abre subcarpeta
+Izquierda (cursores/joystick), Fire 2 va a carpeta anterior
+ESC o Fire 4 vuelve a la emulacion o submenu anterior. 
+
+Teclado Virtual
+===============
+Desde Teclado: (Por si alguna tecla del emulador no puede ser dada!!)
+
+Cursores: mover cursor de tecla
+CTRL: simular tecla CTRL pulsada
+Mayus: simular tecla MAYUS pulsada
+Espacio: pulsa tecla seleccionada
+F9: Salir de teclado virtual (+CTRL cambiar posicion arriba/abajo)
+
+Desde Joystick
+Direcciones: mover cursor de tecla
+Fire 3: simular tecla CTRL pulsada
+Fire 2: simular tecla MAYUS pulsada
+Fire 1: pulsa tecla seleccionada
+Fire 5: Salir de teclado virtual
+Fire 4: Cambiar posicion arriba/abajo
+_____________________________________________________________________________________________________
+
+Historial de versiones
+======================
+
+V0.1 W.I.P 1
+====
+-Teclado virtual operativo. ¡Programa BASIC desde tu joystick!!!!
+-Soporte de autoejecucion, parcial en discos, completo en cinta.
+-Nueva portada RPI2 reemplazando la de GP2x
+
+
+V0.01 ALPHA - GP2x W.I.P 6 fast port
+====
+-Configurado el viejo port para GP2x para 732x534 en lugar de 320x240
+-Reescritura de los menues para la nueva configuracion.
+-Ejecutable monolitico portable. Sin dependencias de ficheros externos (ROMs, etc)
+-Teclado virtual no funcional-incompleto
+
