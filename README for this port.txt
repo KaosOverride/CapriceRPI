@@ -1,4 +1,4 @@
-Caprice RPI2 V0.1 - W.I.P. 1 - Adapted/ported by KaosOverride 2015
+Caprice RPI2 V0.2 - W.I.P. 2 - Adapted/ported by KaosOverride 2015
 (Caprice32 4.1.0 for Raspberry PI2)
 
 Caprice32 - Amstrad CPC Emulator
@@ -18,11 +18,10 @@ Features:
 -2 joystick support, and up to the unofficial Fire 3, redefinable as key for many games
 -Option menus and CPC virtual keyboard. Full use of the CPC from your joystick!!!
 -Supports DSK, CDT and SNA from menu and command line. Great for frontends and launchers
+-Autorun for DSKs and CDTs (tape loading x5)
+-Low-res modes for RPI1. Hi-res modes with progressive, scan-lines and interlaced effects
 
 To do:
--Finish DSK autorun commands. For now only |CPM. Autorun for CDT complete with x5 loading :)
--Optimize virtual keyboard. Stops 20% the emulation. (Cause found)
--Testing under RPI 1
 -Better menus handling
 _____________________________________________________________________________________________________
 
@@ -31,6 +30,7 @@ Options
 Main Emulation
 ===================
 F1:  (X11 only) Full Screen (No hardware scaler), OK for RPI2 composite out
+F2:  Change wit/without border and Lo-res/Hi-res modes
 F3:  Reset
 F4:  Start/Stop tape motor
 F5:  Start loading tape with RUN" or |TAPE:RUN" depending model
@@ -39,6 +39,7 @@ F7:  Volume ++
 F8:  Options menu
 F9:  Virtual keyboard (+CTRL Change position up/down)
 F10: Quit
+F11: Change Hi-res render mode, progressive, scan-lines, interlaced.
 F12: show FPS / INFO (+CTRL Change realtime or "as fast as it can" 
 
 Joystick:
@@ -92,6 +93,12 @@ ________________________________________________________________________________
 
 Release history
 ================
+
+V0.2 W.I.P 2
+====
+-Low-res modes for RPI1. Hi-res modes with progressive, scan-lines and interlaced effects
+-Autorun support, for DSKs and CDTs.
+
 
 V0.1 W.I.P 1
 ====

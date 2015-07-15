@@ -1,4 +1,4 @@
-Caprice RPI2 V0.1 - W.I.P. 1 - Adapted/ported by KaosOverride 2015
+Caprice RPI2 V0.2 - W.I.P. 2 - Adapted/ported by KaosOverride 2015
 (Caprice32 4.1.0 for Raspberry PI2)
 
 Caprice32 - Amstrad CPC Emulator
@@ -16,13 +16,12 @@ Caracteristicas:
 -Lincaje estatico de libreria SDL compatible con escalado hardware de Raspberry PI
 -Autoconfigurable para frontends y lanzadores (6128 por defecto, 464 para cintas) con soporte parcial de autoejecucion de comandos de inicio de cintas o discos.
 -Soporte para 2 joysticks, y hasta del no oficial Fire 3, redefinible como tecla por muchos juegos.
--Menues navegables y teclado CPC virtual. Usa completamente el CPC desde joystick!!!
--Soporta DSK, CDT y SNA desde menues y linea de comandos. Ideal para frontends y launchers
+-Menus navegables y teclado CPC virtual. Usa completamente el CPC desde joystick!!!
+-Soporta DSK, CDT y SNA desde menus y linea de comandos. Ideal para frontends y launchers
+-Modos graficos Low-res para RPI1
+-Autoejecucion de DSKs y CDTs (cinta carga acelerada x5)
 
 Por hacer:
--Terminar autoejecucion en DSKs. por ahora solo con carga |CPM. Autoejecucion CDT finalizada, con carga acelerada x5 :)
--Optimizar teclado virtual. Frena un 20% la emulacion. (Causa localizada)
--Pruebas en RPI 1
 -Mejorar manejo de los menues
 _____________________________________________________________________________________________________
 
@@ -31,6 +30,7 @@ Opciones
 Emulacion principal
 ===================
 F1:  (X11) Pantalla completa (Sin escalado) Ideal para salida en video compuesto de la RPI2
+F2:  Cambio modo grafico con/sin borde, Low-res/Hi-res
 F3:  Reset
 F4:  Start/Stop motor de cinta
 F5:  Inicar carga cinta con RUN" o |TAPE:RUN"segun modelo 
@@ -39,6 +39,7 @@ F7:  Volumen ++
 F8:  Menu de opciones
 F9:  Teclado virtual (+CTRL Cambiar posicion arriba/abajo)
 F10: Salir
+F11: Cambiar render de Hi-res: Progresivo, scan-lines, entrelazado.
 F12: Mostrar FPS / INFO (+CTRL Cambiar de tiempo real a "lo mas rapido que pueda" 
 
 Joystick:
@@ -92,6 +93,11 @@ ________________________________________________________________________________
 
 Historial de versiones
 ======================
+
+V0.2 W.I.P 2
+====
+-Soporte de autoejecucion completo en disco y cinta.
+-Modos graficos Low-res para RPI1 y Hi-res con efectos progresivo, scanlines e entrelazado
 
 V0.1 W.I.P 1
 ====
