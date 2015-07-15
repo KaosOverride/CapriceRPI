@@ -3182,6 +3182,9 @@ int video_set_palette (void)
 
 int video_init (void)
 {
+Uint32 bpp;
+
+
    if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) { // initialize the video subsystem
       return ERR_VIDEO_INIT;
    }
@@ -3196,6 +3199,18 @@ int video_init (void)
 CPC.scr_fs_bpp=16;
 int bitspixels;
 bitspixels=CPC.scr_fs_bpp;
+
+
+//printf("Checking mode bpp.\n");
+
+bpp=SDL_VideoModeOK(CPC.scr_fs_width,CPC.scr_fs_height, CPC.scr_fs_bpp,flags);
+if(bpp !=CPC.scr_fs_bpp){
+  printf("Mode not available.\n");
+  printf("Caprice needs %dbpp. System is in %dbpp\n",CPC.scr_fs_bpp, bpp);
+
+}
+
+
 
    if (!(video_surface = SDL_SetVideoMode(CPC.scr_fs_width,CPC.scr_fs_height, CPC.scr_fs_bpp,
     flags))) { // attempt to set the required video mode
@@ -4542,6 +4557,8 @@ if (keyboard_show){
   }
 
 GUI_unload();
+
+doCleanUp();
 
 exit(0);
 }
