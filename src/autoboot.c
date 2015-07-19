@@ -142,7 +142,8 @@ int CPC_BootStartDisk (t_drive bootdisc)
 	ams_file directory[64];
 	ams_file *dir_pointer=NULL;
 	unsigned char filename[64][14];
-	memset(filename,0,704);
+	memset(filename,0,sizeof(filename));
+	memset(directory,0,sizeof(directory));
 
 	//is CPM
 
@@ -250,6 +251,13 @@ int CPC_BootStartDisk (t_drive bootdisc)
 //			printf("%s.%s\n",directory[in].filename,directory[in].ext);
 //			printf("%i\n",directory[in].blocks[0]);
 			filenpoint=&filename[round][0];
+/*			if (validate_filename(directory[in],filenpoint)) 
+				{round ++;
+				printf("%s.%s\n",directory[in].filename,directory[in].ext);
+				printf("%i\n",directory[in].blocks[0]);
+
+				}
+*/
 			if (validate_filename(directory[in],filenpoint)) round ++;
 			}
 	}
@@ -259,6 +267,7 @@ int CPC_BootStartDisk (t_drive bootdisc)
 	for (in=0;in<64;in++)
 	{	if (filename[in][0]!=NULL)
 			{
+//			printf("---%s\n",filename[in]);
 			if (filename[in][13]>best_score)
 			  {
 			  best_filename=filename[in];
@@ -267,7 +276,7 @@ int CPC_BootStartDisk (t_drive bootdisc)
 			}
 	}
 
-	//printf("%s  -->%i\n",best_filename,best_score);
+//	printf("%s  -->%i\n",best_filename,best_score);
 
 
 	if (best_score > 0)

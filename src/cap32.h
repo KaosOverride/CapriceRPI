@@ -456,6 +456,10 @@ void tape_eject (void);
 
 
 int dsk_load (char *pchFileName, t_drive *drive, char chID);
+int CPC_DSK_load(char *discpath, char driveID);
+int CPC_TAPE_load(char *tapepath);
+int CPC_SNA_load(char *snapath);
+void dsk_eject (t_drive *drive);
 
 
 int snapshot_load (char *pchFileName);

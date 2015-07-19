@@ -31,6 +31,7 @@ extern SDL_Surface *video_surface,*back_surface;
 
 extern t_CPC CPC;
 extern t_drive driveA;
+extern t_drive driveB;
 
 extern bool have_DSK;
 extern bool have_SNA;
@@ -39,6 +40,11 @@ extern bool have_TAP;
 extern byte *pbTapeImage;
 extern int cpc_tapeturbo;
 extern int cpc_tapespeeding;
+extern int cpc_dskautorun;
+extern int cpc_tapeautorun;
+extern int BootDiskRunCount;
+extern int BootTapeRunCount;
+
 
 extern int emulatorend;
 
@@ -241,11 +247,12 @@ static char open_path[_MAX_PATH];
 struct filelist {
 	char name[MAX_NAME + 1];
 	int isdir;
+	int ExtId;
 } files[MAX_ENTRY];
 static int nfiles;
 
 
-enum {    
+enum {
 	EXT_SNAP,
 	EXT_DSK,
 	EXT_TAPE,
@@ -272,18 +279,22 @@ const struct {
 int getExtId( char *szFilePath) {
 	char *pszExt;
 	int i;
-	if (pszExt = strrchr(szFilePath, '.')) {
+	if (pszExt = strrchr(szFilePath, '.'))
+	{
 		pszExt++;
-		for (i = 0; stExtentions[i].nExtId != EXT_UNKNOWN; i++) {
-			if (!strcasecmp(stExtentions[i].szExt,pszExt)) {
+		for (i = 0; stExtentions[i].nExtId != EXT_UNKNOWN; i++)
+		{
+			if (!strcasecmp(stExtentions[i].szExt,pszExt))
+			{
 				return stExtentions[i].nExtId;
 			}
 		}
 	}
-// Special
-	if(!strcasecmp(szFilePath, "IPL.TXT"))
-		return EXT_UNKNOWN;
 
+// Special
+/*	if(!strcasecmp(szFilePath, "IPL.TXT"))
+		return EXT_UNKNOWN;
+*/
 	return EXT_UNKNOWN;
 }
 
@@ -320,7 +331,7 @@ void sort(int left, int right) {
 	}
 }
 
-void getDir(const char *path, int updir) {
+void getDir(const char *path, int updir, int filter) {
 	strcpy(open_path, path);
 	
 	while(1) {
@@ -364,20 +375,31 @@ void getDir(const char *path, int updir) {
 			char fullname[_MAX_PATH];
 
 			nfiles = 0;
-			while( (nfiles < MAX_ENTRY) && (direntp = readdir(fd)) != NULL ){
+			while( (nfiles < MAX_ENTRY) && (direntp = readdir(fd)) != NULL )
+			{
 				if(direntp->d_name[0] == '.') continue;
 				sprintf(fullname, "%s%s", open_path, direntp->d_name);
-				if(stat(fullname, &statbuf) == 0) {
+				if(stat(fullname, &statbuf) == 0) 
+					{
 					files[nfiles].isdir = S_ISDIR(statbuf.st_mode);
-					if(files[nfiles].isdir) {
+					if(files[nfiles].isdir) 
+					{
 						strcpy(files[nfiles].name, direntp->d_name);
 						strcat(files[nfiles].name, "/");
 						nfiles++;
-					} else if(getExtId(direntp->d_name) != EXT_UNKNOWN) {
-						strcpy(files[nfiles].name, direntp->d_name);
-						nfiles++;
+						} else {
+							int myext;
+							myext=getExtId(direntp->d_name);
+							if ((myext == filter) || (myext == EXT_ZIPPED)) 
+							//(myext != EXT_UNKNOWN) 
+							{
+							//remove not relevant ext
+							strcpy(files[nfiles].name, direntp->d_name);
+							files[nfiles].ExtId=myext;
+							nfiles++;
+							}
+						}
 					}
-				}
 			}
 			closedir(fd);
 
@@ -460,7 +482,8 @@ void drawlist(char *extension)
 		SDL_BlitSurface(carpa, NULL, montaje, &dstrect);
 
 		else
-		switch(getExtId(files[i].name)) 
+		switch(files[i].ExtId) 
+//		switch(getExtId(files[i].name)) 
 		{
 
 			case EXT_DSK:
@@ -475,6 +498,7 @@ void drawlist(char *extension)
 				break;
 			case EXT_ZIPPED:
 				SDL_BlitSurface(zipo, NULL, montaje, &dstrect);
+				break;
 			default:
 				SDL_BlitSurface(fich, NULL, montaje, &dstrect);
 				break;
@@ -489,7 +513,7 @@ void drawlist(char *extension)
 
 
 
-int eventloop(void) {
+int eventloop(int ext) {
 	SDL_Event event;
 	int flag = 0;
 	static int move_dir = 0;
@@ -527,7 +551,7 @@ int eventloop(void) {
 				if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
 					{		//Action LEFT
 					move_dir = 0;
-					getDir(open_path, 1);
+					getDir(open_path, 1,ext);//filter
 					break;
 					};
 
@@ -535,7 +559,7 @@ int eventloop(void) {
 					{		//Action RIGHT
 					if(files[cur_pos].isdir){
 						strcat(open_path, files[cur_pos].name);
-						getDir(open_path, 0);
+						getDir(open_path, 0,ext);
 						move_dir = 0;
 						cur_pos = 0;
 						draw_pos = 0;
@@ -554,7 +578,7 @@ int eventloop(void) {
 						if(files[cur_pos].isdir)
 						{
 							strcat(open_path, files[cur_pos].name);
-							getDir(open_path, 0);
+							getDir(open_path, 0,ext);
 							move_dir = 0;
 							cur_pos = 0;
 							draw_pos = 0;
@@ -565,7 +589,7 @@ int eventloop(void) {
 						break;
 					case SDL_JoyFire2:
 						move_dir = 0;
-						getDir(open_path, 1);
+						getDir(open_path, 1,ext);
 						break;
 					case SDL_JoyFire4:		// Accion salir ;
 						flag = 2;
@@ -605,14 +629,14 @@ int eventloop(void) {
 				break;
 			case SDLK_LEFT:
 				move_dir = 0;
-				getDir(open_path, 1);
+				getDir(open_path, 1,ext);
 				break;
 			case SDLK_RIGHT:
 			case SDLK_RETURN:
 				if(files[cur_pos].isdir)
 				{
 					strcat(open_path, files[cur_pos].name);
-					getDir(open_path, 0);
+					getDir(open_path, 0,ext);
 					move_dir = 0;
 					cur_pos = 0;
 					draw_pos = 0;
@@ -689,10 +713,12 @@ int fileloader( char *out, char *ext )
 {
 
 
-int flag;
-static char pathtmp[_MAX_PATH+1]="./";  //SAFE CLEANUP
-SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
-			switch(getExtId(ext)) {
+	int flag,fext;
+	static char pathtmp[_MAX_PATH+1]="./";  //SAFE CLEANUP
+	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+	fext=getExtId(ext);
+	switch(fext) 
+	{
 			case EXT_TAPE:
                           //pathtmp="./tape/"; //
                           strcpy(pathtmp, "./tape/");
@@ -708,13 +734,13 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 			default:
                           strcpy(pathtmp, "./");
                           //pathtmp="./";
-			}          
+	}
 
-	getDir(pathtmp, 0);
+	getDir(pathtmp, 0,fext);
 	cur_pos = 0;
 	draw_pos = 0;
 	redraw = 1;
-	while((flag = eventloop()) == 0)
+	while((flag = eventloop(fext)) == 0)
 	{
 		if(redraw) 
 		{
@@ -821,7 +847,7 @@ int option_menuconfig[8] ;
 
 
 int opt_settingsconfig=1;
-static int maxopt_settingsconfig=3; //Max items in menu
+static int maxopt_settingsconfig=6; //Max items in menu
 textmenu text_settingsconfig[8];
 int option_settingsconfig[8] ;
 
@@ -830,8 +856,8 @@ int option_settingsconfig[8] ;
 //EVALUATORS
 
 int menu_eval_tape (int cur_menupos){
-    
-                   int flag=0;     
+
+                   int flag=0;
                  switch (cur_menupos)
                  {
                   case 0:  //1 Load tape
@@ -843,36 +869,22 @@ int menu_eval_tape (int cur_menupos){
                                draw_menupos = 0;
                                char tapepath[_MAX_PATH + 1];
                                strcpy(tapepath, tape_filename);
-                               if(!tape_insert(tapepath)) {
-                                                          splitPathFileName(tapepath, tapepath, tape_filename);
-                                                          strcpy(CPC.tape_path, tapepath);
-                                                          strcpy(CPC.tape_file, tape_filename); //Se supone k aki se graba sin path¿?
-                                                          CPC.tape_zip = 0;
-                                                          have_TAP = true;
-                                                          }
-                               //redraw=1;
+                               CPC_TAPE_load(tapepath);
+                               redraw=1;
                                }
 
                                //flag =1;
-                       break;
-                  case 1:  //2 Autotype
-                           if (!option_menutape[2]){
-                                    switch (CPC.model) {
-                                        case 0:
-                                           AutoType_SetString("RUN\"\n\r  ", FALSE);
-                                           break;
-                                        case 1:
-                                        case 2:
-                                           AutoType_SetString("|TAPE\n\rRUN\"\n\r  ", FALSE);
-                                        break;
-                                        }
-                           }else{
-                                 AutoType_Init();
-                                           //AutoType_SetString("\0", TRUE);
-                           }                                 
-                               option_menutape[2]=!option_menutape[2];
-                               //redraw=1;
-                               break;
+				break;
+
+                  case 1:  //2 Eject tape
+				Tape_Rewind(); //Reset Tape state
+				tape_eject();  //NULLify the tape. Rewind before ejecting to reset state. May crash if not
+				option_menutape[3]=(CPC.tape_play_button != 0);
+				CPC.tape_path[0]='\0';
+				CPC.tape_file[0]='\0';
+				have_TAP=0;
+				redraw=1;
+				break;
 
                   case 2:  //3 play tape
                                  if (pbTapeImage) {
@@ -885,29 +897,27 @@ int menu_eval_tape (int cur_menupos){
                                vismenu =0;
                                CPC.paused=0; 
                                audio_resume();
+   //                            redraw=1;
                                flag=1;
-                       break;
+				break;
 
                   case 3:  //4 rewind
-                       Tape_Rewind();
-                 	   option_menutape[3]=(CPC.tape_play_button != 0);
-                       //redraw=1;
-                       break;
-                       
-                  case 4:  //5 memory
-                       Tape_Rewind(); //Reset Tape state
-                       tape_eject();  //NULLify the tape. Rewind before ejecting to reset state. May crash if not
-                 	   option_menutape[3]=(CPC.tape_play_button != 0);
-                       //redraw=1;
-                       break;
-                     
+                       		Tape_Rewind();
+                 	   	option_menutape[3]=(CPC.tape_play_button != 0);
+                       		//redraw=1;
+                       		break;
+
+                  case 4:  //5 Autotype
+				option_menutape[5]=!option_menutape[5];
+				cpc_tapeautorun=option_menutape[5];
+				redraw=1;
+                               break;
+
                   case 5:  //6 Frameskip when motor on
                            option_menutape[6]=!option_menutape[6];
                            cpc_tapeturbo=option_menutape[6];
                        //redraw=1;
                        break;
-                       
-                  
                  };
 return flag;
 
@@ -1080,90 +1090,81 @@ int menu_eval_snap (int cur_menupos){
                                draw_menupos = 0;
                                char snappath[_MAX_PATH + 1];
                                strcpy(snappath, snap_filename);
-                               if(!snapshot_load(snappath)) 
-                                  {
-                                     splitPathFileName(snappath, snappath, snap_filename);
-                                     strcpy(CPC.snap_path, snappath);
-                                     strcpy(CPC.snap_file, snap_filename);
-                                     CPC.snap_zip = 0;
-                                     have_SNA = true;
-//                                     printf("Cargando: \"%s\"\n", CPC.snap_file);
-                                  }
-
+				CPC_SNA_load(snappath);
                                redraw=1;
                                flag =1;
                                }
-                               
                                break;
-                               
                 case 1:  //1 Save snap
                                {
-                               saveSnapGUI();
-    
-                                      /*
-                               char snap_filename[_MAX_PATH];
-                               fileloader(snap_filename, ".sna");   // No verificamos errores¿¿?¿?¿?¿? :(
-                               cur_menupos = 0;
-                               draw_menupos = 0;
-                               char snappath[_MAX_PATH + 1];
-                               strcpy(snappath, snap_filename);
-                               printf("PREVIO CARGA SNAP: \n");
-                               if(!snapshot_load(snappath)) 
-                                  {
-                                     splitPathFileName(snappath, snappath, snap_filename);
-                                     strcpy(CPC.snap_path, snappath);
-                                     strcpy(CPC.snap_file, snap_filename);
-                                     CPC.snap_zip = 0;
-                                     have_SNA = true;
-                                     printf("Cargando: \"%s\"\n", CPC.snap_file);
-                                  }
-                               printf("CARGADO SNAP: \n");
-
-                               redraw=1;
-                               //flag =1;
-                               */
+                               //saveSnapGUI();
                                }
-                               
+
                                break;
 
 
                  };
-                 
 return flag;
 
 }
 
 
 int menu_eval_disc (int cur_menupos){
-    
-                   int flag=0;                
+
+                   int flag=0;
                  switch (cur_menupos)
                  {
-                  case 0:  //1 Load disc
-                               {
-                               char disc_filename[_MAX_PATH];
-                               fileloader(disc_filename, ".dsk");   // No verificamos errores¿¿?¿?¿?¿? :(
-                               cur_menupos = 0;
-                               draw_menupos = 0;
-                               char discpath[_MAX_PATH + 1];
-                               strcpy(discpath, disc_filename);
-                               if(!dsk_load(discpath, &driveA, 'A')) 
-                                  {
-                                     splitPathFileName(discpath, discpath, disc_filename);
-                                     strcpy(CPC.drvA_path, discpath);
-                                     strcpy(CPC.drvA_file, disc_filename);
-                                     CPC.drvA_zip = 0;
-                                     have_DSK = true;
-//                                     printf("Cargando: \"%s\"\n", CPC.drvA_file);
-                                  }
+		case 0:  //1 Load disc
+			{
+			char disc_filename[_MAX_PATH];
+			char discpath[_MAX_PATH + 1];
 
-                               redraw=1;
-                               //flag =1;
-                               }
-                               break;
-                               
+			fileloader(disc_filename, ".dsk");
+			cur_menupos = 0;
+			draw_menupos = 0;
+			strcpy(discpath, disc_filename);
 
-               case 1:  //2 Autotype
+			CPC_DSK_load(discpath, 'A'); 
+
+			redraw=1;
+			//flag =1;
+			}
+			break;
+
+		case 1:  //2 eject disk
+			dsk_eject(&driveA);
+			CPC.drvA_path[0]='\0';
+			CPC.drvA_file[0]='\0';
+			redraw=1;
+			break;
+		case 2:  //3 Autrun disc
+			option_menudisc[3]=!option_menudisc[3];
+			cpc_dskautorun=option_menudisc[3];
+			break;
+		case 3:  //4 Load disc B
+			{
+			char disc_filename[_MAX_PATH];
+			char discpath[_MAX_PATH + 1];
+
+			fileloader(disc_filename, ".dsk");   // No verificamos errores¿¿?¿?¿?¿? :(
+			cur_menupos = 0;
+			draw_menupos = 0;
+			strcpy(discpath, disc_filename);
+
+			CPC_DSK_load(discpath, 'B'); 
+
+			redraw=1;
+			//flag =1;
+			}
+			break;
+
+		case 4:  //5 eject disk
+			dsk_eject(&driveB);
+			CPC.drvB_path[0]='\0';
+			CPC.drvB_file[0]='\0';
+			redraw=1;
+			break;
+/*               case 1:  //2 Autotype
                            if (!option_menudisc[2])
                            {
                               AutoType_SetString("CAT\n\r", FALSE);
@@ -1177,6 +1178,7 @@ int menu_eval_disc (int cur_menupos){
             //                   redraw=1;
                                flag =1;
                                break;
+
                case 2:  //2 Autotype TEMPORAL RUN"DISC
                            if (!option_menudisc[3])
                            {
@@ -1221,7 +1223,7 @@ int menu_eval_disc (int cur_menupos){
                                flag =1;
                                break;
 
-
+*/
 
                  };
                  
@@ -1229,9 +1231,10 @@ return flag;
 
 }
 
-int carga_settingsconfig();   // predefinition
+int load_settingsconfig();   // predefinition
 
 
+/*
 int menu_eval_config (int cur_menupos){
     
                    int flag=0;     
@@ -1251,7 +1254,7 @@ int menu_eval_config (int cur_menupos){
                        break;
                        
                   case 3:  //4 model
-                       carga_settingsconfig();   // :(
+                       load_settingsconfig();   // :(
                            flag =1;
                        break;
 
@@ -1266,7 +1269,7 @@ int menu_eval_config (int cur_menupos){
 return flag;
 
 }
-
+*/
 int menu_eval_settings (int cur_settingspos){
     
                    int flag=0;     
@@ -1292,10 +1295,22 @@ int menu_eval_settings (int cur_settingspos){
                   case 2:  //3 COLOR
                        option_settingsconfig[3]=!option_settingsconfig[3];
                        break;
+
+                  case 3:  //4 audio
+                       option_settingsconfig[4]=!option_settingsconfig[4];
+                       break;
                        
-                  
+                  case 4:  //5 frameskip
+                       option_settingsconfig[5]++;
+                       if (option_settingsconfig[5] > 2 ) option_settingsconfig[5]=0;
+                       break;
+                  case 5:  //6 reset
+                           needreset=1;
+                           flag =1;
+                       break;
+
                  };
-                 
+
 return flag;
 
 }
@@ -1436,10 +1451,11 @@ int eventloop_menu(int menu_type) {
                                   flag=menu_eval_snap(cur_menupos);
                                   redraw=1;
                                   break;
-                        case MENU_OPT:
+/*                        case MENU_OPT:
                                   flag=menu_eval_config(cur_menupos);
                                   redraw=1;
                                   break;
+*/
                         case MENU_SET:
                                   flag=menu_eval_settings(cur_menupos);
                                   redraw=1;
@@ -1478,7 +1494,7 @@ void draw_menutape(void) {
         char tmpstr[6]; //AQUI
         sprintf(tmpstr,"%d",option_menutape[opt_menutape]);
 
-        if ((opt_menutape == 2) or (opt_menutape == 6) )
+        if ((opt_menutape == 5) or (opt_menutape == 6) )
               {switch (option_menutape[opt_menutape]) 
                       {
                       case 0:
@@ -1503,16 +1519,32 @@ void draw_menutape(void) {
                           break;
                       }
                }
-                
+
 		dstrect.y = y;
 
 		opt_menutape++;
 	}   
+//TAPE Status:
+
+	dstrect.x = 16;
+
+
+	if (CPC.tape_file[0]=='\0')
+		{
+                displaytext( 25, 205 ,"--", getfontcolor(250, 0 , 250));
+		displaytext( 55, 205 ,"NO TAPE", getfontcolor(250, 0 , 250));
+		}
+		else
+		{
+		dstrect.y = 205;
+		SDL_BlitSurface(tapa, NULL, montaje, &dstrect);
+		displaytext( 55, 205 ,CPC.tape_file, getfontcolor(250, 0 , 250));
+		}
     SDL_UpdateRect(montaje, 0,0,0,0);
 }
 
 
-int carga_menutape( )
+int load_menutape( )
 {
 
 int flag;
@@ -1526,17 +1558,17 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 	option_menutape[2]=0;
 	option_menutape[3]=(CPC.tape_play_button != 0);
 	option_menutape[4]=0;
-	option_menutape[5]=0;
+	option_menutape[5]=cpc_tapeautorun;
 	option_menutape[6]=cpc_tapeturbo;
     strcpy(text_menutape[1].text,"Load Tape");
-    strcpy(text_menutape[2].text,"Type RUN\"");
+    strcpy(text_menutape[2].text,"Eject Tape");
     strcpy(text_menutape[3].text,"Play Tape");
     strcpy(text_menutape[4].text,"Rewind Tape");
-    strcpy(text_menutape[5].text,"Eject Tape");
+    strcpy(text_menutape[5].text,"Autorun Tape");
     strcpy(text_menutape[6].text,"Tape Turbo");
 
     maxopt_menucurrent=maxopt_menutape;
-    
+
 	cur_menupos = 0;
 	draw_menupos = 0;
 	redraw = 1;
@@ -1595,7 +1627,7 @@ void draw_menusnap(void) {
 }
 
 
-int carga_menusnap( )
+int load_menusnap( )
 {
 
 int flag;
@@ -1658,7 +1690,7 @@ void draw_menudisc(void) {
 	int i;
 	int color_menu;
 	SDL_Rect dstrect;
-	dstrect.x = 20;
+	//dstrect.x = 20;
 
 	SDL_BlitSurface(fondo, NULL, montaje, NULL);
 	   SDL_UpdateRect(montaje, 0,0,0,0);
@@ -1671,7 +1703,7 @@ void draw_menudisc(void) {
         // char tmpstr[6]; AQUI POR AHORA NO HACE FALTA
         //      sprintf(tmpstr,"%d",option_menudisc[opt_menudisc]);
 
-        if ((opt_menudisc == 2)  )
+        if ((opt_menudisc == 3)  )
               {switch (option_menudisc[opt_menudisc]) 
                       {
                       case 0:
@@ -1685,15 +1717,48 @@ void draw_menudisc(void) {
 
 
                
-		dstrect.y = y;
+		//dstrect.y = y;
 
 		opt_menudisc++;
 	}   
+
+
+
+
+//Drive Status:
+
+	dstrect.x = 16;
+                displaytext( 40, 180 ,"A:", getfontcolor(250, 0 , 250));
+	if (CPC.drvA_file[0]=='\0')
+		{
+                displaytext( 25, 180 ,"--", getfontcolor(250, 0 , 250));
+		displaytext( 55, 180 ,"NO DISC", getfontcolor(250, 0 , 250));
+		}
+		else
+		{
+		dstrect.y = 180;
+		SDL_BlitSurface(disca, NULL, montaje, &dstrect);
+		displaytext( 55, 180 ,CPC.drvA_file, getfontcolor(250, 0 , 250));
+		}
+                displaytext( 40, 205 ,"B:", getfontcolor(250, 0 , 250));
+	if (CPC.drvB_file[0]=='\0')
+		{
+                displaytext( 25, 205 ,"--", getfontcolor(250, 0 , 250));
+		displaytext( 55, 205 ,"NO DISC", getfontcolor(250, 0 , 250));
+		}
+		else
+		{
+		dstrect.y = 205;
+		SDL_BlitSurface(disca, NULL, montaje, &dstrect);
+		displaytext( 55, 205 ,CPC.drvB_file, getfontcolor(250, 0, 250));
+		}
+
+
     SDL_UpdateRect(montaje, 0,0,0,0);
 }
 
 
-int carga_menudisc( )
+int load_menudisc( )
 {
 
 int flag;
@@ -1705,23 +1770,22 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
     needreset=0;
 	option_menudisc[1]=0;
 	option_menudisc[2]=0;
-	option_menudisc[3]=0;
+	option_menudisc[3]=cpc_dskautorun;
 	option_menudisc[4]=0;
 	option_menudisc[5]=0;
 	option_menudisc[6]=0;
-    strcpy(text_menudisc[1].text,"Load Disc");
-    strcpy(text_menudisc[2].text,"Type CAT");
-    strcpy(text_menudisc[3].text,"Type RUN\"DISC");
-    strcpy(text_menudisc[4].text,"Type RUN\"DISK");
-    strcpy(text_menudisc[5].text,"Type |CPM");
+    strcpy(text_menudisc[1].text,"A:Load Disc");
+    strcpy(text_menudisc[2].text,"A:Eject Disc");
+    strcpy(text_menudisc[3].text,"A:Autorun Disc");
+    strcpy(text_menudisc[4].text,"B:Load Disc");
+    strcpy(text_menudisc[5].text,"B:Eject Disc");
     strcpy(text_menudisc[6].text,"--------");
 
-    maxopt_menucurrent=maxopt_menudisc;            
-    
+    maxopt_menucurrent=maxopt_menudisc;
 	cur_menupos = 0;
 	draw_menupos = 0;
 	redraw = 1;
-	
+
 	while((flag = eventloop_menu(MENU_DISK)) == 0) {
 		if(redraw) {
 			draw_menudisc();
@@ -1748,6 +1812,7 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 
 // MENU CONFIG
 
+/*
 void draw_menuconfig(void) {
 	int y = 50;
 	int i;
@@ -1756,7 +1821,7 @@ void draw_menuconfig(void) {
 
 	SDL_BlitSurface(fondo, NULL, montaje, NULL);
 	   SDL_UpdateRect(montaje, 0,0,0,0);
-	displaytext( 105, 25 ,"CAPRICE MENU", getfontcolor(250, 250, 0)); 			
+	displaytext( 105, 25 ,"CAPRICE MENU", getfontcolor(250, 250, 0));
 	opt_menuconfig=1;
 	for(i=draw_menupos;(opt_menuconfig<=maxopt_menuconfig) && (y < 250);i++, y+=25){
 		int color_menu =0;
@@ -1798,16 +1863,16 @@ void draw_menuconfig(void) {
 
 
 
-int carga_menuconfig( )
+int load_menuconfig( )
 {
 
 int flag;
 // char *path;
-SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
-  SDL_UpdateRect(montaje, 0,0,0,0);
+	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+  	SDL_UpdateRect(montaje, 0,0,0,0);
 	//strcpy(path, "./snap/");
 	//getDir(path, 0);
-    needreset=0;
+    	needreset=0;
 	option_menuconfig[1]=CPC.snd_enabled;
 	option_menuconfig[2]=CPC.scr_fskip;
 	option_menuconfig[3]=200;  //FAKEspeed(c) for now
@@ -1856,7 +1921,7 @@ if (needreset==1){
 	return 0;
 }
 
-
+*/
 //___________________________________________
 // SETTINGS CONFIG
 
@@ -1868,7 +1933,7 @@ void draw_settingsconfig(void) {
 
 	SDL_BlitSurface(fondo, NULL, montaje, NULL);
 	   SDL_UpdateRect(montaje, 0,0,0,0);
-	displaytext( 105, 25 ,"CPC SETTINGS", getfontcolor(250, 250, 0)); 			
+	displaytext( 105, 25 ,"CPC SETTINGS", getfontcolor(250, 250, 0));
 	opt_settingsconfig=1;
 	for(i=draw_menupos;(opt_settingsconfig<=maxopt_settingsconfig) && (y < 250);i++, y+=25){
 		int color_menu =0;
@@ -1893,7 +1958,14 @@ void draw_settingsconfig(void) {
                        }
                        break;
 
+                 case 2:
+                        sprintf(tmpstr,"%d",option_settingsconfig[opt_settingsconfig]+64);
+                 case 5:
+                        displaytext( 250, y ,tmpstr, getfontcolor(250, color_menu, 0));
+                        break;
+
                  case 3:
+                 case 4:
                        {switch (option_settingsconfig[opt_settingsconfig]) 
                              {
                         case 0:
@@ -1905,15 +1977,9 @@ void draw_settingsconfig(void) {
                              }
                         }
                         break;
-                 case 2:
-                        sprintf(tmpstr,"%d",option_settingsconfig[opt_settingsconfig]+64);
-                        displaytext( 250, y ,tmpstr, getfontcolor(250, color_menu, 0));
-                        break;
-                 case 5:
-                 case 4:
+
                  default:
                          break;   
-
               }
 
 		dstrect.y = y;
@@ -1924,7 +1990,7 @@ void draw_settingsconfig(void) {
 
 
 
-int carga_settingsconfig( )
+int load_settingsconfig( )
 {
 
 int flag;
@@ -1937,15 +2003,16 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 	option_settingsconfig[1]=CPC.model;
 	option_settingsconfig[2]=CPC.ram_size-64;
 	option_settingsconfig[3]=!CPC.scr_tube;
-	option_settingsconfig[4]=0;
-	option_settingsconfig[5]=0;
+	option_settingsconfig[4]=CPC.snd_enabled;
+	option_settingsconfig[5]=CPC.scr_fskip;
 	option_settingsconfig[6]=0;
     strcpy(text_settingsconfig[1].text,"CPC Model");
     strcpy(text_settingsconfig[2].text,"Memory");
     strcpy(text_settingsconfig[3].text,"Color monitor");
-    strcpy(text_settingsconfig[4].text,"-------------");
-    strcpy(text_settingsconfig[5].text,"-------------");
-    strcpy(text_settingsconfig[6].text,"-------------");
+    strcpy(text_settingsconfig[4].text,"Audio");
+    strcpy(text_settingsconfig[5].text,"Frameskip");
+    strcpy(text_settingsconfig[6].text,"Reset CPC");
+
 
     maxopt_menucurrent=maxopt_settingsconfig;
     
@@ -1962,33 +2029,28 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 		}
 	}
 
-	if(flag > 0) {  //???
+//	if(flag > 0) {  //???
 
 	if (CPC.model != option_settingsconfig[1]) needreset=1;
-	if (CPC.ram_size != option_settingsconfig[2]) needreset=1;
+	if (CPC.ram_size != (option_settingsconfig[2]+64)) needreset=1;
 
-    CPC.model=option_settingsconfig[1];
+    	CPC.model=option_settingsconfig[1];
 	CPC.ram_size=option_settingsconfig[2]+64;
 	CPC.scr_tube=!option_settingsconfig[3];
+	CPC.snd_enabled=option_settingsconfig[4];
+	CPC.scr_fskip=option_settingsconfig[5];
 	video_set_palette();
-//	option_settingsconfig[3]=200;  //FAKEspeed(c) for now
-//	CPC.model=option_settingsconfig[4];
-//	CPC.ram_size=option_settingsconfig[5];
-if (needreset==1){
+	if (needreset==1){
 
 			emulator_shutdown();
 			//emulator_reset(false);
 			emulator_init();
-
-
-                  }
-
-
+	                  }
 		return 1;
-	}//flag=1
+//	}//flag=1
 
 
-	return 0;
+return 0;
 }
 
 
@@ -2162,25 +2224,27 @@ void icomenu_eval (SDL_Event icoevent)
                                      switch (nopcion)
                                           {
                                           case 0:
-                                                carga_menudisc();   // :(
-                                                vismenu =0;
+                                                load_menudisc();   // :(
+						if (!cpc_dskautorun) BootDiskRunCount=0; //If no autorun, disable it...
+						vismenu =0;
                                                 CPC.paused=0;
                                                 audio_resume();
                                                break;
                                           case 1:
-                                                carga_menutape();            // :(
+                                                load_menutape();            // :(
+						if (!cpc_tapeautorun) BootTapeRunCount=0; //If no autorun, disable it...
                                                 vismenu =0;
                                                 CPC.paused=0;
                                                 audio_resume();
                                                break;
                                           case 2:
-                                               carga_menusnap();            // :(
+                                               load_menusnap();            // :(
                                                 vismenu =0;
                                                 CPC.paused=0;
                                                 audio_resume();
                                                break;
                                           case 3:
-                                                carga_menuconfig();   // :(
+                                                load_settingsconfig();   // :(
                                                 vismenu =0;
                                                 CPC.paused=0;
                                                 //audio_pause();

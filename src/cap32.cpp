@@ -255,7 +255,7 @@ int emulatorend = 0;
 /* autotype string should not be here - it should be on the command line */
 /* but the command line code make the assumption that all command line arguments are files! */
 //EXTERN_C  char* Caprice32_Autotype;
-char Caprice32_Autotype[256];
+//char Caprice32_Autotype[256];
 
 bool KeyboardScanned = false;
 
@@ -485,6 +485,12 @@ static byte keyboard_translation[320] = {
 
 int cpc_tapeturbo=1;
 int cpc_tapespeeding=0;
+int cpc_tapeautorun=0;
+int cpc_dskautorun=0;
+
+int BootTapeRunCount=0;
+int BootDiskRunCount=0;
+
 
 extern int keyboard_pos,keyboard_show;
 
@@ -1928,7 +1934,6 @@ exit:
    return iRetCode;
 }
 
-    
 
 void tape_eject (void)
 {
@@ -2329,6 +2334,321 @@ int tape_insert_voc (char *pchFileName)
    delete [] pchTmpBuffer; */
    return 0;
 }
+
+
+//EASY LOADERS
+////////////////////// Experimental
+
+void splitPathFileName(char *pchCombined, char *pchPath, char *pchFile);
+
+int CPC_DSK_load(char *discpath, char driveID)
+{
+
+
+    char path[_MAX_PATH + 1];
+    char file_name[_MAX_PATH + 1];
+    char extension[5];
+    int length;
+    int pos;
+
+
+    length = strlen(discpath);
+    pos = length - 4;
+    strcpy(path,discpath);
+
+    if (pos > 0) 
+     {
+            bool zip = false;
+            strncpy(extension, &path[pos], 4); // grab the extension
+            extension[4] = '\0'; // zero terminate string
+ 
+           if (strcasecmp(extension, ".zip") == 0) 
+           { // are we dealing with a zip archive?
+               zip_info.pchZipFile = path;
+               zip_info.pchExtension = ".dsk";
+               if (!zip_dir(&zip_info)) 
+               {
+                  strncpy(file_name, zip_info.pchFileNames, sizeof(file_name)-1); // name of the 1st file in the archive
+                  pos = strlen(file_name) - 4;
+                  strncpy(extension, &file_name[pos], 4); // grab the extension
+                  zip = true;
+               }
+           } else 
+           {
+                  splitPathFileName(path, path, file_name); // split into components
+           }
+
+//SOLO POS
+
+	if (zip) 
+	{ // compressed image?
+	 char chFileName[_MAX_PATH + 1];
+         char *pchPtr = zip_info.pchFileNames;
+
+	 zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1)); // get the offset into the zip archive
+	 if (!zip_extract(path, chFileName, zip_info.dwOffset)) 
+	       {
+
+		switch (driveID)
+		{
+			case 'B':
+				if (!dsk_load(chFileName, &driveB, 'B'))
+				{
+					strcpy(CPC.drvB_path, path); // if the image loads, copy the infos to the config structure
+					strcpy(CPC.drvB_file, file_name);
+					CPC.drvB_zip = 1;
+				}
+				remove(chFileName);
+				break;
+			case 'A':
+			default:
+				if (!dsk_load(chFileName, &driveA, 'A'))
+				{
+					strcpy(CPC.drvA_path, path); // if the image loads, copy the infos to the config structure
+					strcpy(CPC.drvA_file, file_name);
+					CPC.drvA_zip = 1;
+					have_DSK = true;
+					BootDiskRunCount=600;
+//					fprintf(stderr, "DiskAutoboot: ");
+				}
+				remove(chFileName);
+				break;
+		}
+
+
+               }//Zip_extract
+	 }// ZIP 
+	 else 
+	 { //NO ZIP
+		CPC.drvA_zip = CPC.drvB_zip = 0;
+
+		switch (driveID)
+		{
+			case 'B':
+				strcat(path, file_name);
+				if (!dsk_load(path, &driveB, 'B'))
+				{
+					strcpy(CPC.drvB_path, path);
+					strcpy(CPC.drvB_file, file_name);
+					CPC.drvB_zip = 0;
+				}
+				break;
+			case 'A':
+			default:
+				strcat(path, file_name);
+				if (!dsk_load(path, &driveA, 'A'))
+				{
+					strcpy(CPC.drvA_path, path);
+					strcpy(CPC.drvA_file, file_name);
+					CPC.drvA_zip = 0;
+					have_DSK = true;
+					BootDiskRunCount=600;
+//					fprintf(stderr, "DiskAutoboot: ");
+				}
+				break;
+		}//switch dsk
+	 }//NOZIP
+
+   }// POS
+
+ return 0; //ERROR handling pending
+} //End CPC_DSK_load
+
+//TAPE
+int CPC_TAPE_load(char *tapepath)
+{
+
+
+    char path[_MAX_PATH + 1];
+    char file_name[_MAX_PATH + 1];
+    char extension[5];
+    int length;
+    int pos;
+
+
+    length = strlen(tapepath);
+    pos = length - 4;
+    strcpy(path,tapepath);
+
+    if (pos > 0) 
+     {
+            bool zip = false;
+            strncpy(extension, &path[pos], 4); // grab the extension
+            extension[4] = '\0'; // zero terminate string
+ 
+           if (strcasecmp(extension, ".zip") == 0) 
+           { // are we dealing with a zip archive?
+               zip_info.pchZipFile = path;
+               zip_info.pchExtension = ".cdt.voc";
+               if (!zip_dir(&zip_info)) 
+               {
+                  strncpy(file_name, zip_info.pchFileNames, sizeof(file_name)-1); // name of the 1st file in the archive
+                  pos = strlen(file_name) - 4;
+                  strncpy(extension, &file_name[pos], 4); // grab the extension
+                  zip = true;
+               }
+           } else 
+           {
+                  splitPathFileName(path, path, file_name); // split into components
+           }
+
+//SOLO POS
+
+	if (zip) 
+	{ // compressed image
+	 char chFileName[_MAX_PATH + 1];
+         char *pchPtr = zip_info.pchFileNames;
+
+	 zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1)); // get the offset into the zip archive
+	 if (!zip_extract(path, chFileName, zip_info.dwOffset)) 
+	       {
+		if (strcasecmp(extension, ".cdt") == 0)
+		{
+			if (!tape_insert(chFileName))
+			{
+				strcpy(CPC.tape_path, path); // if the image loads, copy the infos to the config structure
+				strcpy(CPC.tape_file, file_name);
+				CPC.tape_zip = 1;
+				have_TAP = true;
+				BootTapeRunCount=600;
+			}
+			remove(chFileName);
+		}
+		if (strcasecmp(extension, ".voc") == 0)
+		{
+			if (!tape_insert_voc(chFileName))
+			{
+				strcpy(CPC.tape_path, path); // if the image loads, copy the infos to the config structure
+				strcpy(CPC.tape_file, file_name);
+				CPC.tape_zip = 1;
+				have_TAP = true;
+				BootTapeRunCount=600;
+//					fprintf(stderr, "DiskAutoboot: ");
+			}
+			remove(chFileName);
+
+		}
+
+               }//Zip_extract
+	 }// ZIP 
+	 else 
+	 { //NO ZIP
+		CPC.tape_zip = 0;
+		if (strcasecmp(extension, ".cdt") == 0)
+		{
+			strcat(path, file_name);
+			if (!tape_insert(path))
+			{
+				strcpy(CPC.tape_path, path);
+				strcpy(CPC.tape_file, file_name);
+				//CPC.tape_zip = 0;
+				have_TAP = true;
+				BootTapeRunCount=600;
+			}
+		}
+		if (strcasecmp(extension, ".voc") == 0)
+		{
+			strcat(path, file_name);
+			if (!tape_insert_voc(path))
+			{
+				strcpy(CPC.tape_path, path);
+				strcpy(CPC.tape_file, file_name);
+				//CPC.tape_zip = 0;
+				have_TAP = true;
+				BootTapeRunCount=600;
+			}
+		}
+
+	 }//NOZIP
+
+   }// POS
+
+ return 0; //ERROR handling pending
+} 
+
+//SNA
+int CPC_SNA_load(char *snapath)
+{
+
+
+    char path[_MAX_PATH + 1];
+    char file_name[_MAX_PATH + 1];
+    char extension[5];
+    int length;
+    int pos;
+
+
+    length = strlen(snapath);
+    pos = length - 4;
+    strcpy(path,snapath);
+
+    if (pos > 0) 
+     {
+            bool zip = false;
+            strncpy(extension, &path[pos], 4); // grab the extension
+            extension[4] = '\0'; // zero terminate string
+ 
+           if (strcasecmp(extension, ".zip") == 0) 
+           { // are we dealing with a zip archive?
+               zip_info.pchZipFile = path;
+               zip_info.pchExtension = ".sna";
+               if (!zip_dir(&zip_info)) 
+               {
+                  strncpy(file_name, zip_info.pchFileNames, sizeof(file_name)-1); // name of the 1st file in the archive
+                  pos = strlen(file_name) - 4;
+                  strncpy(extension, &file_name[pos], 4); // grab the extension
+                  zip = true;
+               }
+           } else 
+           {
+                  splitPathFileName(path, path, file_name); // split into components
+           }
+
+//SOLO POS
+
+	if (zip) 
+	{ // compressed image
+	 char chFileName[_MAX_PATH + 1];
+         char *pchPtr = zip_info.pchFileNames;
+
+	 zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1)); // get the offset into the zip archive
+	 if (!zip_extract(path, chFileName, zip_info.dwOffset)) 
+	       {
+			if (!snapshot_load(chFileName))
+			{
+				strcpy(CPC.snap_path, path);
+				strcpy(CPC.snap_file, file_name);
+				CPC.snap_zip = 1;
+				have_SNA = true;
+			}
+
+			remove(chFileName);
+
+               }//Zip_extract
+	 }// ZIP 
+	 else 
+	 { //NO ZIP
+		CPC.snap_zip = 0;
+			strcat(path, file_name);
+			if (!snapshot_load(path))
+			{
+				strcpy(CPC.snap_path, path);
+				strcpy(CPC.snap_file, file_name);
+				//CPC.tape_zip = 0;
+				have_SNA= true;
+				BootTapeRunCount=600;
+			}
+
+	 }//NOZIP
+
+   }// POS
+
+ return 0; //ERROR handling pending
+} 
+
+
+//////////////////////
+
 
 
 
@@ -3723,8 +4043,6 @@ int main (int argc, char **argv)
    int iExitCondition;
    bool bolDone;
    SDL_Event event;
-   int BootTapeRunCount=0;
-   int BootDiskRunCount=0;
    
    
 #ifndef LINUX
@@ -3758,7 +4076,7 @@ have_TAP = false;
 
 	//fprintf(stdout, "Arguments: %d %d\n", argvgp2xmenu, argvsound);
       
-	fprintf(stdout, "======================\nCapriceRPI2 WIP Start:\n======================\n" VERSION_STRING " \n" AUTOR_STRING " \n" NOTE_STRING "\n...\n");
+	fprintf(stdout, "======================\nCapriceRPI Start:\n======================\n" VERSION_STRING " \n" AUTOR_STRING " \n" NOTE_STRING "\n...\n");
 
    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
       fprintf(stderr, "SDL_Init() failed: %s\n", SDL_GetError());
@@ -3776,10 +4094,12 @@ have_TAP = false;
 
 /////////////////////////////////////////////SDL JOY TEST
 
-    	printf("%i joysticks were found.\n\n", SDL_NumJoysticks() );
+    	if (!SDL_NumJoysticks())
+    	printf("No joysticks were found.\n\n" );
+
     	if (SDL_NumJoysticks()>0)
 	{
-		printf("The names of the joysticks are:\n");
+		printf("Joysticks ID names:\n");
     		for( i=0; i < SDL_NumJoysticks(); i++ ) 
     		{
         		printf("    %s\n", SDL_JoystickName(i));
@@ -3860,287 +4180,97 @@ newrom_load("sym-romD.rom","./rom",18);
   #ifdef DEBUG
    pfoDebug = fopen("./debug.txt", "wt");
    #endif
+
+//FILE LOADING------------------------------------------------------------------------
+
+
+//LOAD FROM COMMAND LINE
    memset(&driveA, 0, sizeof(t_drive)); // clear disk drive A data structure
+
    for (int i = 1; i < argc; i++) { // loop for all command line arguments
       int length = strlen(argv[i]);
       if (length > 5) { // minumum for a valid filename
          char path[_MAX_PATH + 1];
          char extension[5];
+
          if (argv[i][0] == '"') { // argument passed with quotes?
             length -= 2;
             strncpy(path, &argv[i][1], length); // strip the quotes
          } else {
             strncpy(path, &argv[i][0], sizeof(path)-1); // take it as is
          }
+
          int pos = length - 4;
-         if (pos > 0) {
+         if (pos > 0) 
+         {
             char file_name[_MAX_PATH + 1];
-            bool zip = false;
+  //          bool zip = false;
             strncpy(extension, &path[pos], 4); // grab the extension
             extension[4] = '\0'; // zero terminate string
-            if (strcasecmp(extension, ".zip") == 0) { // are we dealing with a zip archive?
-               zip_info.pchZipFile = path;
-               zip_info.pchExtension = ".dsk.sna.cdt.voc";
-               if (zip_dir(&zip_info)) {
-                  continue; // error or nothing relevant found
-               } else {
-                  strncpy(file_name, zip_info.pchFileNames, sizeof(file_name)-1); // name of the 1st file in the archive
-                  pos = strlen(file_name) - 4;
-                  strncpy(extension, &file_name[pos], 4); // grab the extension
-                  zip = true;
-               }
-            } else {
+
+            if (strcasecmp(extension, ".zip") == 0) // are we dealing with a zip archive?
+		{
+                 zip_info.pchZipFile = path;
+                 zip_info.pchExtension = ".dsk.sna.cdt.voc";
+                 if (zip_dir(&zip_info))
+			{
+                  	continue; // error or nothing relevant found
+               		} else 
+			{
+                  	strncpy(file_name, zip_info.pchFileNames, sizeof(file_name)-1); // name of the 1st file in the archive
+                  	pos = strlen(file_name) - 4;
+                  	strncpy(extension, &file_name[pos], 4); // grab the extension
+//                  	zip = true;
+               		}
+            	}/* else {
                splitPathFileName(path, path, file_name); // split into components
-            }
-            if ((!have_DSK) && (strcasecmp(extension, ".dsk") == 0)) { // a disk image?
-               if (zip) {
-                  char chFileName[_MAX_PATH + 1];
-                  char *pchPtr = zip_info.pchFileNames;
-                  zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1)); // get the offset into the zip archive
-                  if (!zip_extract(path, chFileName, zip_info.dwOffset)) {
-                     if (!dsk_load(chFileName, &driveA, 'A')) {
-                        strcpy(CPC.drvA_path, path); // if the image loads, copy the infos to the config structure
-                        strcpy(CPC.drvA_file, file_name);
-                        CPC.drvA_zip = 1;
-                        have_DSK = true;
-			BootDiskRunCount=600;
-			fprintf(stderr, "DiskAutoboot: ");
+            }*/
 
-                     }
-                     remove(chFileName);
-                  }
-               } else {
-                  strcat(path, file_name);
-                  if(!dsk_load(path, &driveA, 'A')) {
-                     strcpy(CPC.drvA_path, path);
-                     strcpy(CPC.drvA_file, file_name);
-                     CPC.drvA_zip = 0;
-                     have_DSK = true;
-			BootDiskRunCount=600;
-			fprintf(stderr, "DiskAutoboot: ");
 
-                  } 
-               }
-            }
-            if ((!have_SNA) && (strcasecmp(extension, ".sna") == 0)) {
-               if (zip) {
-                  char chFileName[_MAX_PATH + 1];
-                  char *pchPtr = zip_info.pchFileNames;
-                  zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1));
-                  if (!zip_extract(path, chFileName, zip_info.dwOffset)) {
-                     if (!snapshot_load(chFileName)) {
-                        strcpy(CPC.snap_path, path);
-                        strcpy(CPC.snap_file, file_name);
-                        CPC.snap_zip = 1;
-                        have_SNA = true;
-                     }
-                     remove(chFileName);
-                  }
-               } else {
-                  strcat(path, file_name);
-                  if(!snapshot_load(path)) {
-                     strcpy(CPC.snap_path, path);
-                     strcpy(CPC.snap_file, file_name);
-                     CPC.snap_zip = 0;
-                     have_SNA = true;
-                  }
-               }
-            }
-            if ((!have_TAP) && (strcasecmp(extension, ".cdt") == 0)) {
-               if (zip) {
-                  char chFileName[_MAX_PATH + 1];
-                  char *pchPtr = zip_info.pchFileNames;
-                  zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1));
-                  if (!zip_extract(path, chFileName, zip_info.dwOffset)) {
-                     if (!tape_insert(chFileName)) {
-                        strcpy(CPC.tape_path, path);
-                        strcpy(CPC.tape_file, file_name);
-                        CPC.tape_zip = 1;
-                        have_TAP = true;
-			//setup autorun countdown
-			BootTapeRunCount=600;
-			fprintf(stderr, "TapeAutoboot set.\n");
-                     }
-                     remove(chFileName);
-                  }
-               } else {
-                  strcat(path, file_name);
-                  if(!tape_insert(path)) {
-                     strcpy(CPC.tape_path, path);
-                     strcpy(CPC.tape_file, file_name);
-                     CPC.tape_zip = 0;
-                     have_TAP = true;
-			//setup autorun countdown
-			BootTapeRunCount=600;
-			fprintf(stderr, "TapeAutoboot set.\n");
-                  }
-               }
-            }
-            if ((!have_TAP) && (strcasecmp(extension, ".voc") == 0)) {
-               if (zip) {
-                  char chFileName[_MAX_PATH + 1];
-                  char *pchPtr = zip_info.pchFileNames;
-                  zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1));
-                  if (!zip_extract(path, chFileName, zip_info.dwOffset)) {
-                     if (!tape_insert_voc(chFileName)) {
-                        strcpy(CPC.tape_path, path);
-                        strcpy(CPC.tape_file, file_name);
-                        CPC.tape_zip = 1;
-                        have_TAP = true;
-                     	//setup autorun countdown
-			BootTapeRunCount=600;
-			fprintf(stderr, "TapeAutoboot set.\n");
-			}
-                     remove(chFileName);
-                  }
-               } else {
-                  strcat(path, file_name);
-                  if(!tape_insert_voc(path)) {
-                     strcpy(CPC.tape_path, path);
-                     strcpy(CPC.tape_file, file_name);
-                     CPC.tape_zip = 0;
-                     have_TAP = true;
-			//setup autorun countdown
-			BootTapeRunCount=600;
-			fprintf(stderr, "TapeAutoboot set.\n");
 
-                  }
-               }
-            }
-         }
-      }
-   }
 
-   if ((!have_DSK) && (CPC.drvA_file[0])) { // insert disk in drive A?
-      char chFileName[_MAX_PATH + 1];
-      char *pchPtr;
+            if ((!have_DSK) && (strcasecmp(extension, ".dsk") == 0)) // a disk image?
+		{
+		CPC_DSK_load(path,'A');
 
-      if (CPC.drvA_zip) { // compressed image?
-         zip_info.pchZipFile = CPC.drvA_path; // pchPath already has path and zip file combined
-         zip_info.pchExtension = ".dsk";
-         if (!zip_dir(&zip_info)) { // parse the zip for relevant files
-            dword n;
-            pchPtr = zip_info.pchFileNames;
-            for (n = zip_info.iFiles; n; n--) { // loop through all entries
-               if (!strcasecmp(CPC.drvA_file, pchPtr)) { // do we have a match?
-                  break;
-               }
-               pchPtr += strlen(pchPtr) + 5; // skip offset
-            }
-            if (n) {
-               zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1)); // get the offset into the zip archive
-               if (!zip_extract(CPC.drvA_path, chFileName, zip_info.dwOffset)) {
-                  dsk_load(chFileName, &driveA, 'A');
-			BootDiskRunCount=600;
-			fprintf(stderr, "DiskAutoboot: ");
+		}
 
-                  remove(chFileName);
-               }
-            }
-         } else {
-            CPC.drvA_zip = 0;
-         }
-      } else {
-         strncpy(chFileName, CPC.drvA_path, sizeof(chFileName)-1);
-         strncat(chFileName, CPC.drvA_file, sizeof(chFileName)-1 - strlen(chFileName));
-         dsk_load(chFileName, &driveA, 'A');
-			BootDiskRunCount=600;
-			fprintf(stderr, "DiskAutoboot: ");
+            if ((!have_SNA) && (strcasecmp(extension, ".sna") == 0)) 
+		{
+		CPC_SNA_load(path);
+		}
 
-      }
-   }
+
+            if ((!have_TAP) && (strcasecmp(extension, ".cdt") == 0))
+		{
+		CPC_TAPE_load(path);
+		}
+            if ((!have_TAP) && (strcasecmp(extension, ".voc") == 0))
+		{
+		CPC_TAPE_load(path);
+		}
+
+	}//POS
+  }//length>5
+}//argc
+
+//LOAD FROM DEFAULT SETTINGS
+
+   if ((!have_DSK) && (CPC.drvA_file[0])) // insert disk in drive A?
+	{
+	CPC_DSK_load(CPC.drvA_file,'A');
+	}
+
    memset(&driveB, 0, sizeof(t_drive)); // clear disk drive B data structure
-   if (CPC.drvB_file[0]) { // insert disk in drive B?
-      char chFileName[_MAX_PATH + 1];
-      char *pchPtr;
+   if (CPC.drvB_file[0])  // insert disk in drive B?
+	{
+	CPC_DSK_load(CPC.drvB_file,'B');
+	}
 
-      if (CPC.drvB_zip) { // compressed image?
-         zip_info.pchZipFile = CPC.drvB_path; // pchPath already has path and zip file combined
-         zip_info.pchExtension = ".dsk";
-         if (!zip_dir(&zip_info)) { // parse the zip for relevant files
-            dword n;
-            pchPtr = zip_info.pchFileNames;
-            for (n = zip_info.iFiles; n; n--) { // loop through all entries
-               if (!strcasecmp(CPC.drvB_file, pchPtr)) { // do we have a match?
-                  break;
-               }
-               pchPtr += strlen(pchPtr) + 5; // skip offset
-            }
-            if (n) {
-               zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1)); // get the offset into the zip archive
-               if (!zip_extract(CPC.drvB_path, chFileName, zip_info.dwOffset)) {
-                  dsk_load(chFileName, &driveB, 'B');
-                  remove(chFileName);
-               }
-            }
-         }
-         else {
-            CPC.drvB_zip = 0;
-         }
-      }
-      else {
-         strncpy(chFileName, CPC.drvB_path, sizeof(chFileName)-1);
-         strncat(chFileName, CPC.drvB_file, sizeof(chFileName)-1 - strlen(chFileName));
-         dsk_load(chFileName, &driveB, 'B');
-      }
-   }
-   if ((!have_TAP) && (CPC.tape_file[0])) { // insert a tape?
-      int iErrorCode = 0;
-      char chFileName[_MAX_PATH + 1];
-      char *pchPtr;
-
-      if (CPC.tape_zip) { // compressed image?
-         zip_info.pchZipFile = CPC.tape_path; // pchPath already has path and zip file combined
-         zip_info.pchExtension = ".cdt.voc";
-         iErrorCode = zip_dir(&zip_info);
-         if (!iErrorCode) { // parse the zip for relevant files
-            dword n;
-            pchPtr = zip_info.pchFileNames;
-            for (n = zip_info.iFiles; n; n--) { // loop through all entries
-               if (!strcasecmp(CPC.tape_file, pchPtr)) { // do we have a match?
-                  break;
-               }
-               pchPtr += strlen(pchPtr) + 5; // skip offset
-            }
-            if (n) {
-               zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1)); // get the offset into the zip archive
-               iErrorCode = zip_extract(CPC.tape_path, chFileName, zip_info.dwOffset);
-            }
-            else {
-               CPC.tape_zip = 0;
-               iErrorCode = 1; // file not found
-            }
-         }
-         else {
-            CPC.tape_zip = 0;
-         }
-      }
-      else {
-         strncpy(chFileName, CPC.tape_path, sizeof(chFileName)-1);
-         strncat(chFileName, CPC.tape_file, sizeof(chFileName)-1 - strlen(chFileName));
-      }
-      if (!iErrorCode) {
-         int iOffset = strlen(CPC.tape_file) - 3;
-         char *pchExt = &CPC.tape_file[iOffset > 0 ? iOffset : 0]; // pointer to the extension
-         if (strncasecmp(pchExt, "cdt", 3) == 0) { // is it a cdt file?
-            iErrorCode = tape_insert(chFileName);
-	    //setup autorun countdown
-	    BootTapeRunCount=600;
-	    fprintf(stderr, "TapeAutoboot set.\n");
-
-         }
-         else if (strncasecmp(pchExt, "voc", 3) == 0) { // is it a voc file?
-            iErrorCode = tape_insert_voc(chFileName);
-	    //setup autorun countdown
-	    BootTapeRunCount=600;
-	    fprintf(stderr, "TapeAutoboot set.\n");
-         }
-         if (CPC.tape_zip) {
-            remove(chFileName); // dispose of the temp file
-         }
-      }
-   }
- 
+   if ((!have_TAP) && (CPC.tape_file[0])) // insert a tape?
+	{
+	CPC_TAPE_load(CPC.tape_file);
+	}
 
 
 
@@ -4159,7 +4289,7 @@ newrom_load("sym-romD.rom","./rom",18);
    bolDone = false;
 
    AutoType_Init();
-   if (Caprice32_Autotype && *Caprice32_Autotype) AutoType_SetString(Caprice32_Autotype, FALSE);
+   //if (Caprice32_Autotype && *Caprice32_Autotype) AutoType_SetString(Caprice32_Autotype, FALSE);
 
    while (!bolDone) {
       while (SDL_PollEvent(&event)) {
@@ -4379,7 +4509,7 @@ if (keyboard_show){
 		}else{
 		if (BootDiskRunCount==1)
 			{
-			fprintf(stderr, " Start.\n");
+	//		fprintf(stderr, " Start.\n");
 
 			CPC_BootStartDisk(driveA);
 			BootDiskRunCount=0;
@@ -4399,7 +4529,7 @@ if (keyboard_show){
 		}else{
 		if (BootTapeRunCount==1)
 			{
-			fprintf(stderr, "TapeAutoboot do.\n");
+//			fprintf(stderr, "TapeAutoboot do.\n");
 
 			CPC_BootStartTape();
 			BootTapeRunCount=0;
