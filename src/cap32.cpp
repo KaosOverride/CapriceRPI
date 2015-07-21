@@ -268,18 +268,7 @@ SDL_Surface *video_surface = NULL;
 SDL_Surface *back_surface = NULL;
 SDL_Rect video_rect, back_rect,SDL_rect;
 
-typedef struct
-{
-int width;
-int height;
-int CPC_width;
-int CPC_height;
-int CPC_visible_width;
-int CPC_visible_height;
-int Xscale;
-int Yscale;
-} vid_mode;
-
+int CPC_max_vid_mode=3;
 vid_mode videomodes[4]={
 //	Dx Dy= Display
 //	Sx Sy=Screen
@@ -287,10 +276,10 @@ vid_mode videomodes[4]={
 //	X,Y=Scale
 //
 //	{ Dx, Dy, Sx, Sy, Vx, Vy,X,Y}
-	{640,480,640,312,320,240,2,2},
-	{768,530,768,312,384,272,2,2},
-	{320,240,320,312,320,240,1,1},
-	{384,265,384,312,384,272,1,1}
+	{320,240,320,312,320,240,1,1,"320x240"},
+	{384,265,384,312,384,272,1,1,"384x265"},
+	{640,480,640,312,320,240,2,2,"640x480"},
+	{768,530,768,312,384,272,2,2,"768x530"}
 };
 
 int CPC_scr_width;
@@ -3273,7 +3262,15 @@ void video_set_style (void)
    {
    switch(CPC_render_mode)
    {
-      //case 8:
+ 	case 0:  //PROGESS
+
+               mode_handler[0] = draw16bpp_mode0_double;
+               mode_handler[1] = draw16bpp_mode1_double;
+               mode_handler[2] = draw16bpp_mode2_double;
+               mode_handler[3] = draw16bpp_mode0_double;
+               border_handler = draw16bpp_border_double;
+		break;
+
       	case 1:  //SCANLINES
 
                mode_handler[0] = draw16bpp_mode0;
@@ -3292,14 +3289,6 @@ void video_set_style (void)
                border_handler = draw16bpp_border_scanplus;
 	         break;
 
- 	case 0:  //PROGESS
-
-               mode_handler[0] = draw16bpp_mode0_double;
-               mode_handler[1] = draw16bpp_mode1_double;
-               mode_handler[2] = draw16bpp_mode2_double;
-               mode_handler[3] = draw16bpp_mode0_double;
-               border_handler = draw16bpp_border_double;
-		break;
 
    }
 
@@ -4067,7 +4056,7 @@ have_TAP = false;
         for (i = 1; i < argc; i++)
         {
                 if (!(strcmp(argv[i], "--nosound"))) argvsound=false;
-
+                if (!(strcmp(argv[i], "--notapeturbo"))) cpc_tapeturbo=0;
                 if (!(strcmp(argv[i], "--screenpause"))) argvpausescreen=true;
 
         }
@@ -4133,8 +4122,16 @@ have_TAP = false;
    CPC_even_frame=0;
    CPC_render_mode=0;
 
-   if (WhichPI()>128)vid_index=1; else vid_index=2;
-   //vid_index=2;
+   if (WhichPI()>128)
+	{
+	CPC_max_vid_mode=3;
+	vid_index=3;
+	}else
+	{
+	CPC_max_vid_mode=1;
+	vid_index=0;
+	} 
+  //vid_index=2;
    video_reconfig(vid_index);
    //video_set_style(); called from video_init()
 
@@ -4295,25 +4292,31 @@ newrom_load("sym-romD.rom","./rom",18);
       while (SDL_PollEvent(&event)) {
 
 
-if (keyboard_show){
-                   eval_keyboard(event);
-                   }else{
+if (keyboard_show)
+{
 
-   switch (event.type) {
+ eval_keyboard(event);
+
+}
+else
+{
+   int menu_eval_action=0;
+   switch (event.type) 
+   {
 
 
 		//--------------------------------------------------------------------------------------
 		//                  Aqui empezamos con el joystick virtual
 		//--------------------------------------------------------------------------------------
 
-    case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
-		case SDL_JOYBUTTONUP:
-		case SDL_JOYBUTTONDOWN:
+    	case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+	case SDL_JOYBUTTONUP:
+	case SDL_JOYBUTTONDOWN:
 
-		{    
-               if (vismenu) icomenu_eval (event);
-               else 
-               {    	  
+		if (vismenu)   menu_eval_action=1;
+
+		else
+		{
                   pcjoy_update (event);
                   if ( pcjoy_pressed (PC_JOY1_UP) ) {cpc_key_press (0x90); } else {cpc_key_unpress (0x90);};
                   if ( pcjoy_pressed (PC_JOY1_DOWN) ) {cpc_key_press (0x91); } else {cpc_key_unpress (0x91);};
@@ -4330,27 +4333,27 @@ if (keyboard_show){
                   if ( pcjoy_pressed (PC_JOY2_FIRE1) ) {cpc_key_press (0x64); } else {cpc_key_unpress (0x64);};
                   if ( pcjoy_pressed (PC_JOY2_FIRE2) ) {cpc_key_press (0x65); } else {cpc_key_unpress (0x65);};
                   if ( pcjoy_pressed (PC_JOY2_FIRE3) ) {cpc_key_press (0x66); } else {cpc_key_unpress (0x66);};
-							
-					
-							if (event.type == SDL_JOYBUTTONDOWN )		
-							{		
-							 switch (event.jbutton.button)  	
-									{	 
-									case SDL_JoyFire4:
-                     icomenu_vis(argvpausescreen);
-                     break;
-									case SDL_JoyFire6:
-                     CPC.scr_fps=!(CPC.scr_fps);
-                     break;
-									case SDL_JoyFire5:
-                     //cpc_key_press (0x80);
-                     keyboard_show=1;
-                     break;
-									}
-							}								
-         }
+
+		  if (event.type == SDL_JOYBUTTONDOWN )
+			{
+			switch (event.jbutton.button)  	
+				{
+				case SDL_JoyFire4:
+					icomenu_vis(argvpausescreen);
+					break;
+				case SDL_JoyFire6:
+					CPC.scr_fps=!(CPC.scr_fps);
+                     			break;
+				case SDL_JoyFire5:
+					//cpc_key_press (0x80);
+					keyboard_show=1;
+					break;
+				}//button case
+			}// If Joy buttons event type
+
+         	}//if Vismenu else
+
          break;
-	}
 
 		//--------------------------------------------------------------------------------------
 		//                  Aqui a cabamos con el joystick virtual
@@ -4374,7 +4377,7 @@ if (keyboard_show){
 
             case SDL_KEYDOWN:
                {
-                  if (vismenu) icomenu_eval (event);
+                  if (vismenu) menu_eval_action=1;
                   else
                   {
                    byte cpc_key = event2key(event); // translate the PC key to a CPC key
@@ -4404,8 +4407,8 @@ if (keyboard_show){
                            SDL_Delay(20);
                            video_shutdown();
 			   vid_index++;
-			   if (vid_index>3) vid_index=0;
-			   CPC_render_mode=0;
+			   if (vid_index>CPC_max_vid_mode) vid_index=0;
+			   //CPC_render_mode=0;
                            video_reconfig(vid_index);
 			   if (video_init()) 
 	                           {
@@ -4460,7 +4463,7 @@ if (keyboard_show){
 				break;
 
 
-                        case CAP32_OPTIONS:   //F8
+                        case CAP32_OPTIONS: //F8
 				icomenu_vis(argvpausescreen);
 				break;
 
@@ -4485,8 +4488,8 @@ if (keyboard_show){
                               CPC.scr_fps = CPC.scr_fps ? 0 : 1; // toggle fps display on or off
                            }
                            break;
-                      }//Keys switch
-                    }//if paused
+                      }//EMU options Keys down EVAL
+                    }//if CPC keys 
 
                   }//if vismenu
 
@@ -4496,9 +4499,47 @@ if (keyboard_show){
 
             case SDL_QUIT:
 		emulatorend=1;
-         }
-      }
-      
+                  break;
+         } //Main case eval SDL_event
+
+	if (menu_eval_action)
+			{
+				int current_vid_index;
+				int current_render_mode;
+
+				current_render_mode=CPC_render_mode;
+				current_vid_index=vid_index;
+
+				icomenu_eval (event);
+				//
+
+				if ( current_vid_index != vid_index)
+				{
+					audio_pause();
+					SDL_Delay(20);
+					video_shutdown();
+					//CPC_render_mode=0;
+					video_reconfig(vid_index);
+					if (video_init()) 
+					{
+						doCleanUp();
+						exit(-1);
+					}
+					GUI_reload();
+					audio_resume();
+					CPC_render_msg_delay=0;
+				}
+
+				if (current_render_mode!=CPC_render_mode)
+				{
+					printf("Render change\n");
+					   video_set_style();
+				}
+			}
+
+
+  }
+
 }// From keyboard_show
 
 

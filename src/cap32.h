@@ -467,4 +467,23 @@ int snapshot_load (char *pchFileName);
 int video_set_palette (void);
 void audio_pause (void);
 void audio_resume (void);
+
+
+//VIDMODES defs
+
+
+typedef struct
+{
+int width;
+int height;
+int CPC_width;
+int CPC_height;
+int CPC_visible_width;
+int CPC_visible_height;
+int Xscale;
+int Yscale;
+char Vid_mode_desc[9];
+} vid_mode;
+
+
 #endif

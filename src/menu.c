@@ -45,6 +45,13 @@ extern int cpc_tapeautorun;
 extern int BootDiskRunCount;
 extern int BootTapeRunCount;
 
+extern int CPC_render_mode;
+extern int CPC_max_render_mode;
+extern char CPC_render_mode_desc[3][15];
+
+extern int vid_index;
+extern int CPC_max_vid_mode;
+extern vid_mode videomodes[4];
 
 extern int emulatorend;
 
@@ -66,37 +73,22 @@ int nopcion,vismenu=0;
 void menu_blit (void)
 {
 
-
-	//AQUI SE HA DE BLITEAR CON ZOOM
-
-  montaje_zoom = zoomSurface(montaje,dwXScale,dwYScale,0);
-
-
-/*
-  montaje_region.x=64;
-  montaje_region.y=25;
-  montaje_region.w=640;
-  montaje_region.h=480;
-*/
+	montaje_zoom = zoomSurface(montaje,dwXScale,dwYScale,0);
   	montaje_region.x=(back_surface->w-montaje_zoom->w)/2;
   	montaje_region.y=(video_surface->h-montaje_zoom->h)/2;
   	montaje_region.w=montaje_zoom->w;
   	montaje_region.h=montaje_zoom->h;
 
-
-
    SDL_BlitSurface(montaje_zoom, NULL, video_surface, &montaje_region);  //180-240
    SDL_UpdateRect(video_surface, 0,0,0,0);
    if (montaje_zoom != NULL) SDL_FreeSurface( montaje_zoom); 
 
-
 }
-
 
 
 /*
 ================================================================================================================
-                                              FUENTES
+                                              FONTS
 ================================================================================================================
 */
 
@@ -140,13 +132,11 @@ void setupfonts(void)
 //	if (smallfont == NULL)
 //		printf("Font error: %s", TTF_GetError());
 
-//	atexit(shutdownfonts);
 }
 
 static void shutdownfonts(void)
 {
 //	fontinuse = NULL;
-	
 	//TTF_CloseFont(smallfont);
 	//smallfont = NULL;
 
@@ -190,16 +180,15 @@ static void displaytext( int tx, int ty, const char *texto, SDL_Color textcolor)
 	if (!textsurface)
 		printf("Font error: %s\n", TTF_GetError());
 
-	SDL_BlitSurface(textsurface, NULL, montaje, &dest);  //PONER A DONDE!!!
+	SDL_BlitSurface(textsurface, NULL, montaje, &dest);
         //SDL_UpdateRects(montaje, 1, &dest);
         SDL_Delay(5);
 	SDL_FreeSurface(textsurface);
-//	SDL_UpdateRect(video_surface, 0, 0, 0, 0);  //PONER A DONDE!!!
+//	SDL_UpdateRect(video_surface, 0, 0, 0, 0); 
 }
 
 /*
 
-Ejemplo
 
 void showpausedtext(void)
 {
@@ -210,9 +199,8 @@ void showpausedtext(void)
 
 /*
 ================================================================================================================
-                                              MENU
-
-                                              Part of code from NK's SNES9x port's ROM loader
+		MENU
+		Part of code from NK's SNES9x port's ROM loader
 
 ================================================================================================================
 
@@ -249,6 +237,7 @@ struct filelist {
 	int isdir;
 	int ExtId;
 } files[MAX_ENTRY];
+
 static int nfiles;
 
 
@@ -259,6 +248,7 @@ enum {
 	EXT_ZIPPED,
 	EXT_UNKNOWN  
 };
+
 const struct {
 	char szExt[4];
 	int nExtId;
@@ -816,6 +806,7 @@ enum {
 	MENU_SNAP,
 	MENU_OPT,
 	MENU_SET,
+	MENU_SCR,
 	MENU_UNKNOWN  
 };
 
@@ -839,15 +830,21 @@ static int maxopt_menusnap=2; //Max items in menu
 textmenu text_menusnap[8];
 int option_menusnap[8] ;
 
-
+/*
 int opt_menuconfig=1;
 static int maxopt_menuconfig=5; //Max items in menu
 textmenu text_menuconfig[8];
 int option_menuconfig[8] ;
+*/
+
+int opt_menuscreen=1;
+static int maxopt_menuscreen=4; //Max items in menu
+textmenu text_menuscreen[8];
+int option_menuscreen[8] ;
 
 
 int opt_settingsconfig=1;
-static int maxopt_settingsconfig=6; //Max items in menu
+static int maxopt_settingsconfig=5; //Max items in menu
 textmenu text_settingsconfig[8];
 int option_settingsconfig[8] ;
 
@@ -1164,74 +1161,11 @@ int menu_eval_disc (int cur_menupos){
 			CPC.drvB_file[0]='\0';
 			redraw=1;
 			break;
-/*               case 1:  //2 Autotype
-                           if (!option_menudisc[2])
-                           {
-                              AutoType_SetString("CAT\n\r", FALSE);
-                           }
-                           else
-                           {
-                                 AutoType_Init();
-                                           //AutoType_SetString("\0", TRUE);
-                           }                                 
-                               option_menudisc[2]=!option_menudisc[2];
-            //                   redraw=1;
-                               flag =1;
-                               break;
-
-               case 2:  //2 Autotype TEMPORAL RUN"DISC
-                           if (!option_menudisc[3])
-                           {
-                           AutoType_SetString("RUN\"DISC\n\r", FALSE);
-                           }
-                           else
-                           {
-                                 AutoType_Init();
-                                           //AutoType_SetString("\0", TRUE);
-                           }                                 
-                               option_menudisc[3]=!option_menudisc[3];
-            //                   redraw=1;
-                               flag =1;
-                               break;
-
-               case 3:  //2 Autotype TEMPORAL RUN"DISK
-                           if (!option_menudisc[4])
-                           {
-                           AutoType_SetString("RUN\"DISK\n\r", FALSE);
-                           }
-                           else
-                           {
-                                 AutoType_Init();
-                                           //AutoType_SetString("\0", TRUE);
-                           }                                 
-                               option_menudisc[4]=!option_menudisc[4];
-            //                   redraw=1;
-                               flag =1;
-                               break;
-               case 4:  //2 Autotype TEMPORAL |CPM
-                           if (!option_menudisc[5])
-                           {
-                           AutoType_SetString("|CPM\n\r", FALSE);
-                           }
-                           else
-                           {
-                                 AutoType_Init();
-                                           //AutoType_SetString("\0", TRUE);
-                           }                                 
-                               option_menudisc[5]=!option_menudisc[5];
-            //                   redraw=1;
-                               flag =1;
-                               break;
-
-*/
-
                  };
-                 
+
 return flag;
 
 }
-
-int load_settingsconfig();   // predefinition
 
 
 /*
@@ -1270,6 +1204,53 @@ return flag;
 
 }
 */
+
+//EVAL SCREEN CONFIG
+
+int menu_eval_screen (int cur_menupos){
+    
+                   int flag=0;     
+
+                 switch (cur_menupos)
+                 {
+                  case 0:  //1 Color/Green monitor
+                       option_menuscreen[1]=!option_menuscreen[1];
+                       break;
+
+                  case 1:  //2 frameskip
+                       option_menuscreen[2]++;
+                       if (option_menuscreen[2] > 2 ) option_menuscreen[2]=0;
+                       break;
+
+                  case 2:  //3 vid mode
+			option_menuscreen[3]++;
+			if (option_menuscreen[3] > CPC_max_vid_mode ) option_menuscreen[3]=0;
+			break;
+
+                  case 3:  //4 render
+     			if (option_menuscreen[3]>1)
+			{
+			option_menuscreen[4]++;
+			if (option_menuscreen[4] > CPC_max_render_mode ) option_menuscreen[4]=0;
+			}
+//CPC_render_mode;
+
+                       break;
+
+                  case 4:  //5 back
+//                           needreset=1;
+                           flag =1;
+                       break;
+                 };
+
+return flag;
+
+}
+
+//EVAL SETTINGS
+
+int load_menuscreen();   // predefinition
+
 int menu_eval_settings (int cur_settingspos){
     
                    int flag=0;     
@@ -1292,22 +1273,17 @@ int menu_eval_settings (int cur_settingspos){
                                }
                        break;
 
-                  case 2:  //3 COLOR
+                  case 2:  //3 audio
                        option_settingsconfig[3]=!option_settingsconfig[3];
                        break;
 
-                  case 3:  //4 audio
-                       option_settingsconfig[4]=!option_settingsconfig[4];
-                       break;
-                       
-                  case 4:  //5 frameskip
-                       option_settingsconfig[5]++;
-                       if (option_settingsconfig[5] > 2 ) option_settingsconfig[5]=0;
-                       break;
-                  case 5:  //6 reset
+                  case 3:  //4 Screen setup
+			load_menuscreen();
+			break;
+                  case 4:  //5 reset
                            needreset=1;
                            flag =1;
-                       break;
+			   break;
 
                  };
 
@@ -1449,6 +1425,10 @@ int eventloop_menu(int menu_type) {
                                   break;
                         case MENU_SNAP:
                                   flag=menu_eval_snap(cur_menupos);
+                                  redraw=1;
+                                  break;
+                        case MENU_SCR:
+                                  flag=menu_eval_screen(cur_menupos);
                                   redraw=1;
                                   break;
 /*                        case MENU_OPT:
@@ -1922,6 +1902,124 @@ if (needreset==1){
 }
 
 */
+
+
+//MENU SCREEN
+
+
+void draw_menuscreen(void) {
+	int y = 50;
+	int i;
+	SDL_Rect dstrect;
+	dstrect.x = 20;
+
+	SDL_BlitSurface(fondo, NULL, montaje, NULL);
+	   SDL_UpdateRect(montaje, 0,0,0,0);
+	displaytext( 105, 25 ,"SCREEN SETUP", getfontcolor(250, 250, 0));
+	opt_menuscreen=1;
+	for(i=draw_menupos;(opt_menuscreen<=maxopt_menuscreen) && (y < 250);i++, y+=25){
+		int color_menu =0;
+        if(i == cur_menupos) {color_menu=0;} else {color_menu=250;};
+        displaytext( 50, y ,text_menuscreen[opt_menuscreen].text, getfontcolor(250, color_menu, 0)); 
+        char tmpstr[6];
+        sprintf(tmpstr,"%d",option_menuscreen[opt_menuscreen]);
+        switch (opt_menuscreen)
+              {
+                 case 1:
+                       {switch (option_menuscreen[opt_menuscreen]) 
+                             {
+                        case 0:
+                          displaytext( 250, y ,"OFF", getfontcolor(250, color_menu, 0));
+                          break;
+                        case 1:
+                          displaytext( 250, y ,"ON", getfontcolor(250, color_menu, 0));
+                          break;
+                             }
+                        }
+                        break;
+                 case 2:
+                        displaytext( 250, y ,tmpstr, getfontcolor(250, color_menu, 0));
+                        break;
+                 case 3:
+			displaytext( 250, y ,videomodes[option_menuscreen[opt_menuscreen]].Vid_mode_desc, getfontcolor(250, color_menu, 0));
+
+			break;
+                 case 4:
+     			if (option_menuscreen[3]>1)
+			{
+                        displaytext( 220, y ,CPC_render_mode_desc[option_menuscreen[opt_menuscreen]], getfontcolor(250, color_menu, 0));
+                        } else
+			displaytext( 250, y , "NONE" , getfontcolor(250, color_menu, 0));
+                        break;
+                 default:
+                         break;   
+
+              }
+
+		dstrect.y = y;
+
+		opt_menuscreen++;
+	}   SDL_UpdateRect(montaje, 0,0,0,0);
+}
+
+
+
+int load_menuscreen( )
+{
+
+int flag;
+// char *path;
+	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+  	SDL_UpdateRect(montaje, 0,0,0,0);
+    	needreset=0;
+	option_menuscreen[1]=!CPC.scr_tube;
+	option_menuscreen[2]=CPC.scr_fskip;
+	option_menuscreen[3]=vid_index;//vidmode
+	option_menuscreen[4]=CPC_render_mode;
+	option_menuscreen[5]=0;
+	option_menuscreen[6]=0;
+    strcpy(text_menuscreen[1].text,"Color monitor");
+    strcpy(text_menuscreen[2].text,"Frameskip");
+    strcpy(text_menuscreen[3].text,"Video mode:");
+    strcpy(text_menuscreen[4].text,"Renderer");
+    strcpy(text_menuscreen[5].text,"Back <<--");
+    strcpy(text_menuscreen[6].text,"------------");
+
+    maxopt_menucurrent=maxopt_menuscreen;
+    
+	cur_menupos = 0;
+	draw_menupos = 0;
+	redraw = 1;
+	
+	while((flag = eventloop_menu(MENU_SCR)) == 0) {
+		if(redraw) {
+			draw_menuscreen();
+			menu_blit();
+			//SDL_Delay (1000);
+			redraw = 0;
+		}
+	}
+
+	if(flag == 1) {  // IF flag is not 0 or 1, then abort settings change
+
+	CPC.scr_tube=!option_menuscreen[1];
+	CPC.scr_fskip=option_menuscreen[2];
+	vid_index=option_menuscreen[3];
+	CPC_render_mode=option_menuscreen[4];
+	video_set_palette();
+	if (needreset==1){
+                  emulator_reset(false);
+	}
+
+		return 1;
+	}//flag=1
+
+
+	return 0;
+}
+
+
+
 //___________________________________________
 // SETTINGS CONFIG
 
@@ -1935,8 +2033,9 @@ void draw_settingsconfig(void) {
 	   SDL_UpdateRect(montaje, 0,0,0,0);
 	displaytext( 105, 25 ,"CPC SETTINGS", getfontcolor(250, 250, 0));
 	opt_settingsconfig=1;
-	for(i=draw_menupos;(opt_settingsconfig<=maxopt_settingsconfig) && (y < 250);i++, y+=25){
-		int color_menu =0;
+	for(i=draw_menupos;(opt_settingsconfig<=maxopt_settingsconfig) && (y < 250);i++, y+=25)
+	{
+	int color_menu =0;
         if(i == cur_menupos) {color_menu=0;} else {color_menu=250;};
         displaytext( 50, y ,text_settingsconfig[opt_settingsconfig].text, getfontcolor(250, color_menu, 0)); 
         char tmpstr[6];
@@ -1960,12 +2059,9 @@ void draw_settingsconfig(void) {
 
                  case 2:
                         sprintf(tmpstr,"%d",option_settingsconfig[opt_settingsconfig]+64);
-                 case 5:
                         displaytext( 250, y ,tmpstr, getfontcolor(250, color_menu, 0));
-                        break;
-
+                       	break;
                  case 3:
-                 case 4:
                        {switch (option_settingsconfig[opt_settingsconfig]) 
                              {
                         case 0:
@@ -2002,16 +2098,16 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
     needreset=0;
 	option_settingsconfig[1]=CPC.model;
 	option_settingsconfig[2]=CPC.ram_size-64;
-	option_settingsconfig[3]=!CPC.scr_tube;
-	option_settingsconfig[4]=CPC.snd_enabled;
-	option_settingsconfig[5]=CPC.scr_fskip;
+	option_settingsconfig[3]=CPC.snd_enabled;
+	option_settingsconfig[4]=0;
+	option_settingsconfig[5]=0;
 	option_settingsconfig[6]=0;
     strcpy(text_settingsconfig[1].text,"CPC Model");
     strcpy(text_settingsconfig[2].text,"Memory");
-    strcpy(text_settingsconfig[3].text,"Color monitor");
-    strcpy(text_settingsconfig[4].text,"Audio");
-    strcpy(text_settingsconfig[5].text,"Frameskip");
-    strcpy(text_settingsconfig[6].text,"Reset CPC");
+    strcpy(text_settingsconfig[3].text,"Audio");
+    strcpy(text_settingsconfig[4].text,"Screen setup -->");
+    strcpy(text_settingsconfig[5].text,"Reset CPC");
+    strcpy(text_settingsconfig[6].text,"----------------");
 
 
     maxopt_menucurrent=maxopt_settingsconfig;
@@ -2036,10 +2132,7 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 
     	CPC.model=option_settingsconfig[1];
 	CPC.ram_size=option_settingsconfig[2]+64;
-	CPC.scr_tube=!option_settingsconfig[3];
-	CPC.snd_enabled=option_settingsconfig[4];
-	CPC.scr_fskip=option_settingsconfig[5];
-	video_set_palette();
+	CPC.snd_enabled=option_settingsconfig[3];
 	if (needreset==1){
 
 			emulator_shutdown();
