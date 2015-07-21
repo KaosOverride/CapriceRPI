@@ -4532,7 +4532,6 @@ else
 
 				if (current_render_mode!=CPC_render_mode)
 				{
-					printf("Render change\n");
 					   video_set_style();
 				}
 			}
