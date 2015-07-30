@@ -57,7 +57,7 @@ extern int emulatorend;
 
 extern int dwXScale,dwYScale;
 
-SDL_Surface *portada, *montaje_zoom, *montaje,*menu,*fich,*zipo,*carga,*carpa, *fondo, *snapa , *tapa, *disca = NULL;
+SDL_Surface *splash,*portada, *montaje_zoom, *montaje,*menu,*fich,*zipo,*carga,*carpa, *fondo, *snapa , *tapa, *disca = NULL;
 SDL_Surface *key_normal, *key_press, *keyboard_surface = NULL;
 SDL_Rect montaje_region;
 
@@ -321,17 +321,19 @@ void sort(int left, int right) {
 	}
 }
 
-void getDir(const char *path, int updir, int filter) {
+void getDir(const char *path, int updir, int filter) 
+{
 	strcpy(open_path, path);
-	
+
+
 	while(1) {
 		DIR *fd;
 		char prev_dir[MAX_NAME];
 		int prev_len = 0;
 
-		if(updir && (strcasecmp(open_path, "/mnt/") == 0) ) {
+/*		if(updir && (strcasecmp(open_path, "/mnt/") == 0) ) {
 			return;
-		}
+		} */
 		if(updir) {
 			int i;
 			for(i = strlen(open_path)-1; i>0 ; i--) {
@@ -346,7 +348,7 @@ void getDir(const char *path, int updir, int filter) {
 					if(prev_len != 0) {
 						prev_dir[prev_len++] = '/';
 						prev_dir[prev_len] = '\0';
-//						printf("Filer: Prev Dir: %s\n", prev_dir);
+						//printf("Filer: Prev Dir: %s\n", prev_dir);
 					}
 					open_path[i] = '\0';
 					updir = 0;
@@ -369,9 +371,12 @@ void getDir(const char *path, int updir, int filter) {
 			{
 				if(direntp->d_name[0] == '.') continue;
 				sprintf(fullname, "%s%s", open_path, direntp->d_name);
+
 				if(stat(fullname, &statbuf) == 0) 
 					{
 					files[nfiles].isdir = S_ISDIR(statbuf.st_mode);
+
+
 					if(files[nfiles].isdir) 
 					{
 						strcpy(files[nfiles].name, direntp->d_name);
@@ -391,6 +396,7 @@ void getDir(const char *path, int updir, int filter) {
 						}
 					}
 			}
+
 			closedir(fd);
 
 			sort(0, nfiles-1);
@@ -418,6 +424,128 @@ void getDir(const char *path, int updir, int filter) {
 		}
 		updir = 1;
 	}
+}
+
+
+//GETdir filtered
+void getDirFilter(const char *path, int filterExtID, const char *filter) 
+{
+ int updir=0;
+ strcpy(open_path, path);
+ while(1) 
+ {
+	DIR *fd;
+	char prev_dir[MAX_NAME];
+	int prev_len = 0;
+
+	if(updir && (strcasecmp(open_path, "/") == 0) ) 
+	{
+		return;
+	}
+
+	if(updir) 
+	{
+		int i;
+		for(i = strlen(open_path)-1; i>0 ; i--) 
+		{
+			if((open_path[i-1] == '/') || (open_path[i-1] == '\\')) 
+			{
+				strcpy(prev_dir, &open_path[i]);
+				prev_len = strlen(prev_dir);
+
+				while( (prev_len > 0) &&
+				  ((prev_dir[prev_len-1] == '/') || 
+				  (prev_dir[prev_len-1] == '\\')) ) 
+				{
+					prev_dir[prev_len-1] = '\0';
+					--prev_len;
+				}
+
+				if(prev_len != 0) 
+				{
+					prev_dir[prev_len++] = '/';
+					prev_dir[prev_len] = '\0';
+//					printf("Filer: Prev Dir: %s\n", prev_dir);
+				}
+				open_path[i] = '\0';
+				updir = 0;
+				break;
+			}
+		}
+
+		if(updir)
+		{
+			return;
+		}
+	}
+
+////
+	fd = opendir(open_path);
+
+	if(fd != NULL) 
+	{
+		struct dirent *direntp;
+		struct stat statbuf;
+		char fullname[_MAX_PATH];
+
+		nfiles = 0;
+		while( (nfiles < MAX_ENTRY) && (direntp = readdir(fd)) != NULL )
+		{
+			if(direntp->d_name[0] == '.') continue;
+			sprintf(fullname, "%s%s", open_path, direntp->d_name);
+			if(stat(fullname, &statbuf) == 0) 
+				{
+				files[nfiles].isdir = S_ISDIR(statbuf.st_mode);
+				if(!files[nfiles].isdir) 
+				 {
+					int myext;
+					myext=getExtId(direntp->d_name);
+					//compare filter and filename, and extensionID
+					printf("SaveSNA: Compare:%s - %s\n",filter,direntp->d_name);
+					if ((myext == filterExtID) && ((!strncasecmp(direntp->d_name,filter,strlen(filter))))) //TROLOLO
+					//(myext != EXT_UNKNOWN) 
+					{
+
+						//remove not relevant ext
+						strcpy(files[nfiles].name, direntp->d_name);
+						files[nfiles].ExtId=myext;
+						nfiles++;
+					}
+				 }
+				}
+		}//while
+	closedir(fd);
+
+	sort(0, nfiles-1);
+
+	cur_pos = 0;
+	draw_pos = 0;
+	redraw = 1;
+
+	if(prev_len != 0)
+	{
+		int i;
+		for(i=0;i<nfiles;i++)
+		{
+			if(strcasecmp(files[i].name, prev_dir) == 0)
+			{
+				cur_pos = i;
+				draw_pos = i - 2;
+				if((draw_pos + 5) > nfiles) draw_pos = nfiles - 5;
+				if(draw_pos < 0) draw_pos = 0;
+				break;
+			}
+		}
+	}
+
+	strcpy(cur_path, open_path);
+	//printf("Filer: Get Dir %s(%d).\n", open_path, nfiles);
+
+	return;
+	}// fd!=NULL
+
+ updir = 1; //Try up dir
+ }
 }
 
 
@@ -705,7 +833,8 @@ int fileloader( char *out, char *ext )
 
 	int flag,fext;
 	static char pathtmp[_MAX_PATH+1]="./";  //SAFE CLEANUP
-	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+
+//	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
 	fext=getExtId(ext);
 	switch(fext) 
 	{
@@ -788,17 +917,13 @@ int fileloader( char *out, char *ext )
 }
 
 
-struct textmenu{
-       char text[20];
-               };
-
-
-// TAPE MAIN MENU
-
 //=========================================================
 //               MENU SYSTEM
 //=========================================================
 
+struct textmenu{
+       char text[20];
+               };
 
 enum {    
 	MENU_DISK,
@@ -922,7 +1047,262 @@ return flag;
 
 //   SNAPSHOT EVALUATOR
 
+/*
+CD ./SNA / if not exists , use .
+CD SAVE / if not exists create SAVE / if error show msg "Can not save, OK?" and exit
+Check have_DSK / take DSK name / if not check have_TAP / take TAP name / if not take SNA name
+num=00
+while num <10 /sufix=media+num /check exists name+sufix / save if not num++
 
+*/
+
+
+
+//SAVE SNA
+int saveSnap ()
+{
+ char snapfilename[_MAX_PATH];
+ char pathtmp[_MAX_PATH];
+ int tablepos,namepos,exitloop=0;
+ struct stat st = {0};
+ int fmkdir;
+ int savefail=100;
+
+ snapfilename[0]='\0';
+
+ strcpy(pathtmp, "./snap/save");
+
+
+ if (stat(pathtmp, &st) == -1) fmkdir=mkdir(pathtmp, 0777); //No exist  ./snap/save -> create
+
+ if (fmkdir == -1) //Error creating snap/save, check ./save
+ {
+	strcpy(pathtmp, "./save");
+	if (stat(pathtmp, &st) == -1) 
+	 {
+		fmkdir=mkdir(pathtmp, 0777); 	//No exist  ./snap/save -> create
+		savefail=1; //Cannot create ./save. SUPERFAIL 1
+	 }
+ }
+
+strcat(pathtmp,"/");
+
+if (have_DSK)
+	{
+	strcpy(snapfilename,CPC.drvA_file);
+	snapfilename[strlen(snapfilename)-4]='\0';
+	strcat(snapfilename,"_DSK_");
+	}
+   else if (have_TAP) 
+	{
+	strcpy(snapfilename,CPC.tape_file);
+	snapfilename[strlen(snapfilename)-4]='\0';
+	strcat(snapfilename,"_CDT_");
+	}
+   else if (have_SNA) 
+	{
+	strcpy(snapfilename,CPC.snap_file);
+	snapfilename[strlen(snapfilename)-4]='\0';
+	strcat(snapfilename,"_SNA_");
+	}
+
+
+
+ if (snapfilename[0] == '\0')  strcpy (snapfilename,"USER_SNA_");
+
+printf("SaveSNA: Snapfilename:%s\n",snapfilename);
+
+ while (exitloop==0)
+     {
+	int flag=0;
+//	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+//	SDL_UpdateRect(montaje, 0,0,0,0);
+
+	getDirFilter(pathtmp,EXT_SNAP,snapfilename);
+	//ADD NEW FILE OPTION
+	if (nfiles<5)
+	{
+		strcpy(files[nfiles].name,"NEW FILE...");
+		files[nfiles].isdir=0;
+		files[nfiles].ExtId=EXT_UNKNOWN;
+		nfiles++;
+	}
+	cur_pos = 0;
+	draw_pos = 0;
+	redraw = 1;
+	while((flag = eventloop(EXT_UNKNOWN)) == 0)
+	{
+		if(redraw) 
+		{
+			drawlist(".");
+			displaytext( 70, 25 ,"SAVE SNAPSHOT", getfontcolor(250, 250, 0));
+			menu_blit();
+			//SDL_Delay (1000);
+			redraw = 0;
+		}
+	}
+
+	if(flag == 1) 
+	{
+		char tmpfilename[_MAX_PATH];
+		// SAVE SNAP...
+		if (strcmp(files[nfiles].name,"NEW FILE..."))
+			{
+			int findex;
+			char tmpstr[6]; //AQUI
+
+			for (findex=0;findex<5;findex++)
+			 {
+				strcpy(tmpfilename, pathtmp);
+				strcat(tmpfilename,snapfilename);
+        			sprintf(tmpstr,"%02d",findex);
+				strcat(tmpfilename,tmpstr);
+				strcat(tmpfilename,".sna");
+
+				if (!stat (tmpfilename, &st) == 0)
+				 {
+				 break; 
+				 }
+
+			 }
+
+			} else
+			{
+			strcpy(tmpfilename, pathtmp);
+			strcat(tmpfilename, files[cur_pos].name);
+//snapfilename
+			}
+			 strcpy(snapfilename,tmpfilename);
+			//GOT FILENAME
+			savefail=0;  //No error
+			exitloop=1;
+
+	}//flag=1
+
+     }//While exitloop
+
+if (!savefail)
+	{
+	//ask
+	int qexit,qopt;
+ 	SDL_Event qevent;
+
+	qopt=0;
+	qexit=0;
+
+	while (!qexit)
+	  {
+		SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+		SDL_UpdateRect(montaje, 0,0,0,0);
+		displaytext( 70, 100 ,"ARE YOU SURE?", getfontcolor(250, 250, 0));
+
+		displaytext( 70, 125 ,"OK!", getfontcolor(250, 250*qopt, 0));
+		displaytext( 120, 125 ,"CANCEL", getfontcolor(250, 250*(!qopt), 0));
+		menu_blit();
+
+		//SDL EVALUATE
+		while(SDL_PollEvent(&qevent)) 
+		 {
+			switch(qevent.type)
+			 {
+			 case SDL_JOYAXISMOTION:  // Handle Joystick Motion 
+			 case SDL_JOYBUTTONUP:
+			 case SDL_JOYBUTTONDOWN:
+                  		pcjoy_update (qevent);
+				if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
+				 {
+					qopt=0;
+				 }
+				if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
+				 {
+					qopt=1;
+				 }
+				if (qevent.type == SDL_JOYBUTTONDOWN )
+				 {
+				 switch (qevent.jbutton.button)
+				  {
+					case SDL_JoyFire1:
+						//Accion seleccionar
+						if (!qopt)
+						{
+						 //SAVESNAP
+						snapshot_save(snapfilename);
+						}
+						else savefail=2; //CANCELED
+
+						qexit=1;
+						break;
+
+					case SDL_JoyFire4:
+						// Accion salir ;
+						qexit=1;
+						break;
+				  }
+				}
+			case SDL_KEYDOWN:
+			 switch (qevent.key.keysym.sym) 
+            		  {
+				case SDLK_LEFT:
+					qopt=0;
+						break;
+
+				case SDLK_RIGHT:
+					qopt=1;
+						break;
+
+				case SDLK_SPACE: 
+						//Accion seleccionar
+						if (!qopt)
+						{
+						 //SAVESNAP
+						snapshot_save(snapfilename);
+						}
+						else savefail=2; //CANCELED
+
+						qexit=1;
+						break;
+
+				case SDLK_ESCAPE:
+				case 'q':
+						qexit=1;
+						break;
+				default:
+						break;
+			    }
+
+			 } //Switch
+		}//While event
+
+	  }
+	//save
+	}
+
+
+
+switch (savefail)
+  {
+	case 0:  //OK
+
+		break;
+	case 1:  //Dir not creatable
+
+		break;
+	default:
+
+		break;
+
+  }
+
+return 0;
+}//saveSnapGUI 
+
+
+
+
+
+
+//OLD STUFF 
+/*
 const char rolltable[49]="789<-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<-ABCDE";
 #define TABLELENGH  38
 
@@ -978,7 +1358,7 @@ while (exitloop==0)
 
 //////////////
 
-    case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+    case SDL_JOYAXISMOTION:  // Handle Joystick Motion 
 		case SDL_JOYBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
 
@@ -1074,6 +1454,12 @@ if ( tablepos < 5 ) tablepos=42;
  
 }//saveSnapGUI 
 
+*/
+
+
+
+
+
 int menu_eval_snap (int cur_menupos){
     
                    int flag=0;                
@@ -1094,7 +1480,7 @@ int menu_eval_snap (int cur_menupos){
                                break;
                 case 1:  //1 Save snap
                                {
-                               //saveSnapGUI();
+                               saveSnap();
                                }
 
                                break;
@@ -2155,11 +2541,11 @@ return 0;
 ================================================================================================================
 */
 
-void intro_cap(bool splash)
+void intro_cap(bool active)
 {
-if (splash)
+if (active)
 {
-   SDL_BlitSurface(portada, NULL, montaje, NULL);
+   SDL_BlitSurface(splash, NULL, montaje, NULL);
    displaytext( 15, 160 ,NOTE_STRING, getfontcolor(200, 200 , 200));
    displaytext( 15, 180 ,VERSION_STRING, getfontcolor(200, 200 , 200));
    displaytext( 15, 200 ,AUTOR_STRING, getfontcolor(200, 200 , 200));
@@ -2187,7 +2573,7 @@ menubase.w=300;
 menubase.h=36;
 
 SDL_BlitSurface( menu, &menubase, montaje, &Offset ); 
-   //SDL_UpdateRects(video_surface, 1, &Offset); //TROLOLO1
+   //SDL_UpdateRects(video_surface, 1, &Offset); 
 //menu_blit(); will blit at dibujaopcion() ;)   
 }
 
@@ -2437,8 +2823,20 @@ void menu_init()
 menu = load_image_include(menucpc_bmp, menucpc_bmp_size);// "gui/menucpc.bmp");
 	if (menu == NULL)
 		printf("Menu error: %s", SDL_GetError());
-portada= load_image_include(portada_bmp,portada_bmp_size );//"gui/portada.bmp"); 
+
+if (WhichPI()>128)
+        {
+	portada= load_image_include(portada_RPI2_bmp,portada_RPI2_bmp_size );//"gui/portada.bmp"); 
+        }else
+        {
+	portada= load_image_include(portada_RPI1_bmp,portada_RPI1_bmp_size );//"gui/portada.bmp"); 
+        } 
 	if (portada == NULL)
+		printf("Menu error: %s", SDL_GetError());
+
+
+splash= load_image_include(portada_RPI_bmp,portada_RPI_bmp_size );//"gui/portada.bmp"); 
+	if (splash == NULL)
 		printf("Menu error: %s", SDL_GetError());
 montaje= load_image_include( back_bmp,back_bmp_size );//"gui/back.bmp"); //Dirty trick to gain a backbuffer equal to the background!!
 	if (montaje == NULL)
@@ -2494,6 +2892,8 @@ shutdownfonts();
 //Free the images 
 
 	if (portada != NULL) SDL_FreeSurface( portada ); 
+
+	if (splash != NULL) SDL_FreeSurface( splash ); 
 
 	if (snapa != NULL) SDL_FreeSurface( snapa ); 
 

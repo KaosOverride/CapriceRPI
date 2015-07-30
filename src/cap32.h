@@ -463,6 +463,7 @@ void dsk_eject (t_drive *drive);
 
 
 int snapshot_load (char *pchFileName);
+int snapshot_save (char *pchFileName);
 
 int video_set_palette (void);
 void audio_pause (void);
