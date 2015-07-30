@@ -501,7 +501,7 @@ void getDirFilter(const char *path, int filterExtID, const char *filter)
 					int myext;
 					myext=getExtId(direntp->d_name);
 					//compare filter and filename, and extensionID
-					printf("SaveSNA: Compare:%s - %s\n",filter,direntp->d_name);
+					//printf("GetDirFilter: Compare:%s - %s\n",filter,direntp->d_name);
 					if ((myext == filterExtID) && ((!strncasecmp(direntp->d_name,filter,strlen(filter))))) //TROLOLO
 					//(myext != EXT_UNKNOWN) 
 					{
@@ -669,7 +669,7 @@ int eventloop(int ext) {
 				if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
 					{		//Action LEFT
 					move_dir = 0;
-					getDir(open_path, 1,ext);//filter
+					if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);//filter
 					break;
 					};
 
@@ -707,7 +707,7 @@ int eventloop(int ext) {
 						break;
 					case SDL_JoyFire2:
 						move_dir = 0;
-						getDir(open_path, 1,ext);
+						if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);
 						break;
 					case SDL_JoyFire4:		// Accion salir ;
 						flag = 2;
@@ -747,7 +747,7 @@ int eventloop(int ext) {
 				break;
 			case SDLK_LEFT:
 				move_dir = 0;
-				getDir(open_path, 1,ext);
+				if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);
 				break;
 			case SDLK_RIGHT:
 			case SDLK_RETURN:
@@ -951,7 +951,7 @@ int option_menudisc[8] ;
 
 
 int opt_menusnap=1;
-static int maxopt_menusnap=2; //Max items in menu
+static int maxopt_menusnap=3; //Max items in menu
 textmenu text_menusnap[8];
 int option_menusnap[8] ;
 
@@ -1045,17 +1045,7 @@ return flag;
 
 }
 
-//   SNAPSHOT EVALUATOR
-
-/*
-CD ./SNA / if not exists , use .
-CD SAVE / if not exists create SAVE / if error show msg "Can not save, OK?" and exit
-Check have_DSK / take DSK name / if not check have_TAP / take TAP name / if not take SNA name
-num=00
-while num <10 /sufix=media+num /check exists name+sufix / save if not num++
-
-*/
-
+//   SNAPSHOT System
 
 
 //SAVE SNA
@@ -1110,7 +1100,7 @@ if (have_DSK)
 
  if (snapfilename[0] == '\0')  strcpy (snapfilename,"USER_SNA_");
 
-printf("SaveSNA: Snapfilename:%s\n",snapfilename);
+//printf("SaveSNA: Snapfilename:%s\n",snapfilename);
 
  while (exitloop==0)
      {
@@ -1134,14 +1124,25 @@ printf("SaveSNA: Snapfilename:%s\n",snapfilename);
 	{
 		if(redraw) 
 		{
+ 			char tmpname[_MAX_PATH];
+			strcpy(tmpname,"FILE: ");
+			strcat(tmpname,snapfilename);
+			strcat(tmpname,"XX.sna");
+//                	displaytext( 40, 180 ,tmpname, getfontcolor(250, 0 , 250));
 			drawlist(".");
 			displaytext( 70, 25 ,"SAVE SNAPSHOT", getfontcolor(250, 250, 0));
+                	displaytext( 40, 180 ,tmpname, getfontcolor(250, 0 , 250));
 			menu_blit();
 			//SDL_Delay (1000);
 			redraw = 0;
 		}
 	}
 
+	if(flag == 2) 
+		{
+		savefail=2; //CANCELED
+		exitloop=1;
+		}
 	if(flag == 1) 
 	{
 		char tmpfilename[_MAX_PATH];
@@ -1249,7 +1250,7 @@ if (!savefail)
 				case SDLK_RIGHT:
 					qopt=1;
 						break;
-
+				case SDLK_RETURN:
 				case SDLK_SPACE: 
 						//Accion seleccionar
 						if (!qopt)
@@ -1278,13 +1279,19 @@ if (!savefail)
 	}
 
 
+char snapmsg[60];
 
 switch (savefail)
   {
 	case 0:  //OK
+		strcpy (snapmsg, "SNA Save OK!");
+		break;
+	case 1:  //Dir not creatabl
+		strcpy (snapmsg, "Directory error!");
 
 		break;
-	case 1:  //Dir not creatable
+	case 2:  //Dir not creatabl
+		strcpy (snapmsg, "Canceled saving!");
 
 		break;
 	default:
@@ -1293,170 +1300,386 @@ switch (savefail)
 
   }
 
+
+if (savefail > 0)
+	{
+	//ask
+	int qexit;
+ 	SDL_Event qevent;
+
+	qexit=0;
+
+	while (!qexit)
+	  {
+		SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+		SDL_UpdateRect(montaje, 0,0,0,0);
+		displaytext( 70, 100 ,snapmsg, getfontcolor(250, 250, 0));
+
+		displaytext( 100, 125 ,"OK!", getfontcolor(250,0, 0));
+		menu_blit();
+
+
+
+		//SDL EVALUATE
+		while(SDL_PollEvent(&qevent)) 
+		 {
+			switch(qevent.type)
+			 {
+			 case SDL_JOYBUTTONDOWN:
+				 switch (qevent.jbutton.button)
+				  {
+					case SDL_JoyFire1:
+					case SDL_JoyFire4:
+						qexit=1;
+						break;
+				  }
+				break;
+
+			case SDL_KEYDOWN:
+			 switch (qevent.key.keysym.sym) 
+            		  {
+
+				case SDLK_RETURN:
+				case SDLK_SPACE: 
+				case SDLK_ESCAPE:
+				case 'q':
+						//Accion seleccionar
+						qexit=1;
+						break;
+				default:
+						break;
+			    }
+
+			 } //Switch
+		}//While event
+
+	  }
+	//save
+	}
+
+
+
+
 return 0;
 }//saveSnapGUI 
 
+//LOAD SNAP
 
-
-
-
-
-//OLD STUFF 
-/*
-const char rolltable[49]="789<-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<-ABCDE";
-#define TABLELENGH  38
-
-int saveSnapGUI ()
+int loadSnap ()
 {
-char snapfilename[_MAX_PATH];
-char pathtmp[_MAX_PATH];
-int tablepos,namepos,exitloop=0;
-SDL_Event event;
+ char snapfilename[_MAX_PATH];
+ char pathtmp[_MAX_PATH];
+ int tablepos,namepos,exitloop=0;
+ struct stat st = {0};
+ int fmkdir;
+ int loadfail=100;
 
-tablepos=5;
-strcpy(pathtmp, "./snap/");
+ snapfilename[0]='\0';
 
-strcpy(snapfilename,CPC.snap_file);
+ strcpy(pathtmp, "./snap/save");
 
-      if (snapfilename[0] == '\0')  strcpy (snapfilename,"SNAP");
-while (exitloop==0)
+
+ if (stat(pathtmp, &st) == -1) fmkdir=mkdir(pathtmp, 0777); //No exist  ./snap/save -> create
+
+ if (fmkdir == -1) //Error creating snap/save, check ./save
+ {
+	strcpy(pathtmp, "./save");
+	if (stat(pathtmp, &st) == -1) 
+	 {
+		fmkdir=mkdir(pathtmp, 0777); 	//No exist  ./snap/save -> create
+		loadfail=1; //Cannot create ./save. SUPERFAIL 1
+	 }
+ }
+
+strcat(pathtmp,"/");
+
+if (have_DSK)
+	{
+	strcpy(snapfilename,CPC.drvA_file);
+	snapfilename[strlen(snapfilename)-4]='\0';
+	strcat(snapfilename,"_DSK_");
+	}
+   else if (have_TAP) 
+	{
+	strcpy(snapfilename,CPC.tape_file);
+	snapfilename[strlen(snapfilename)-4]='\0';
+	strcat(snapfilename,"_CDT_");
+	}
+   else if (have_SNA) 
+	{
+	strcpy(snapfilename,CPC.snap_file);
+	snapfilename[strlen(snapfilename)-4]='\0';
+	strcat(snapfilename,"_SNA_");
+	}
+
+ if (snapfilename[0] == '\0')  strcpy (snapfilename,"USER_SNA_");
+
+ while (exitloop==0)
      {
-      SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
-      SDL_UpdateRect(montaje, 0,0,0,0);
-      displaytext( 70, 25 ,"SAVE SNAPSHOT", getfontcolor(250, 250, 0)); 			
-      displaytext( 60, 45 ,snapfilename, getfontcolor(250, 250, 0)); 			
-    
-      {  //ISOLATE 1
+	int flag=0;
+//	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+//	SDL_UpdateRect(montaje, 0,0,0,0);
 
-                   char linekeys[13];
-                   char tmpline[6]="ABCDE";
-                   char myposchar[2];
-                   myposchar[0]=rolltable[tablepos];
-                   myposchar[1]='\0';
+	getDirFilter(pathtmp,EXT_SNAP,snapfilename);
+	//ADD NEW FILE OPTION
+/*	if (nfiles<5)
+	{
+		strcpy(files[nfiles].name,"NEW FILE...");
+		files[nfiles].isdir=0;
+		files[nfiles].ExtId=EXT_UNKNOWN;
+		nfiles++;
+	}
+*/
+	cur_pos = 0;
+	draw_pos = 0;
+	redraw = 1;
+	while((flag = eventloop(EXT_UNKNOWN)) == 0)
+	{
+		if(redraw) 
+		{
+ 			char tmpname[_MAX_PATH];
+			strcpy(tmpname,"FILE: ");
+			strcat(tmpname,snapfilename);
+			strcat(tmpname,"XX.sna");
+			drawlist(".");
+			displaytext( 70, 25 ,"LOAD SNAPSHOT", getfontcolor(250, 250, 0));
+                	displaytext( 40, 180 ,tmpname, getfontcolor(250, 0 , 250));
+			menu_blit();
+			//SDL_Delay (1000);
+			redraw = 0;
+		}
+	}
 
-                   //Prepare prefix
-                   strncpy(tmpline,&rolltable[tablepos-5],5);
-                   tmpline[5]='\0';
-                   if (tmpline!= NULL)             displaytext( 40, 100 ,tmpline, getfontcolor(250, 250, 0)); 			
-    
-                   displaytext( 100, 100 ,myposchar, getfontcolor(250,0, 0)); 			
-    
-                   //Prepare Sufix
-                   strcpy (tmpline,"ZXCVB");                   
-                   strncpy(tmpline,&rolltable[tablepos+1],5) ;
-                   tmpline[5]='\0';
+	if(flag == 2) 
+		{
+		loadfail=2; //CANCELED
+		exitloop=1;
+		}
+	if(flag == 1) 
+	{
+		char tmpfilename[_MAX_PATH];
+		// SAVE SNAP...
+/*		if (strcmp(files[nfiles].name,"NEW FILE..."))
+			{
+			int findex;
+			char tmpstr[6]; //AQUI
+
+			for (findex=0;findex<5;findex++)
+			 {
+				strcpy(tmpfilename, pathtmp);
+				strcat(tmpfilename,snapfilename);
+        			sprintf(tmpstr,"%02d",findex);
+				strcat(tmpfilename,tmpstr);
+				strcat(tmpfilename,".sna");
+
+				if (!stat (tmpfilename, &st) == 0)
+				 {
+				 break; 
+				 }
+
+			 }
+
+			} else
+			{
+
+*/
+			strcpy(tmpfilename, pathtmp);
+			strcat(tmpfilename, files[cur_pos].name);
+//snapfilename
+//			}
+			strcpy(snapfilename,tmpfilename);
+			//GOT FILENAME
+			loadfail=0;  //No error
+			exitloop=1;
+
+	}//flag=1
+
+     }//While exitloop
+
+if (!loadfail) CPC_SNA_load(snapfilename);
+/*
+if (!savefail)
+	{
 
 
-      if (tmpline!= NULL)             displaytext( 120, 100 ,tmpline, getfontcolor(250, 250, 0)); 			
+	//ask
+	int qexit,qopt;
+ 	SDL_Event qevent;
 
-                   menu_blit();
+	qopt=0;
+	qexit=0;
 
-      //EVENTS
+	while (!qexit)
+	  {
+		SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+		SDL_UpdateRect(montaje, 0,0,0,0);
+		displaytext( 70, 100 ,"ARE YOU SURE?", getfontcolor(250, 250, 0));
 
-      	while(SDL_PollEvent(&event)) {
-		switch(event.type) {
+		displaytext( 70, 125 ,"OK!", getfontcolor(250, 250*qopt, 0));
+		displaytext( 120, 125 ,"CANCEL", getfontcolor(250, 250*(!qopt), 0));
+		menu_blit();
 
-//////////////
+		//SDL EVALUATE
+		while(SDL_PollEvent(&qevent)) 
+		 {
+			switch(qevent.type)
+			 {
+			 case SDL_JOYAXISMOTION:  // Handle Joystick Motion 
+			 case SDL_JOYBUTTONUP:
+			 case SDL_JOYBUTTONDOWN:
+                  		pcjoy_update (qevent);
+				if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
+				 {
+					qopt=0;
+				 }
+				if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
+				 {
+					qopt=1;
+				 }
+				if (qevent.type == SDL_JOYBUTTONDOWN )
+				 {
+				 switch (qevent.jbutton.button)
+				  {
+					case SDL_JoyFire1:
+						//Accion seleccionar
+						if (!qopt)
+						{
+						 //SAVESNAP
+						snapshot_save(snapfilename);
+						}
+						else savefail=2; //CANCELED
 
-    case SDL_JOYAXISMOTION:  // Handle Joystick Motion 
-		case SDL_JOYBUTTONUP:
-		case SDL_JOYBUTTONDOWN:
+						qexit=1;
+						break;
 
-                  pcjoy_update (event);
-                  if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
-												{		//Action UP
-												};
-									if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
-												{		//Action DOWN
-												};
-                  if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
-												{		//Action LEFT
-													tablepos--;
+					case SDL_JoyFire4:
+						// Accion salir ;
+						qexit=1;
+						break;
+				  }
+				}
+			case SDL_KEYDOWN:
+			 switch (qevent.key.keysym.sym) 
+            		  {
+				case SDLK_LEFT:
+					qopt=0;
+						break;
 
-												};
-									if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
-												{		//Action RIGHT
-													tablepos++;
-													};
-					
-							if (event.type == SDL_JOYBUTTONDOWN )		
-							{		
-							 switch (event.jbutton.button)  	
-									{	 
-									case SDL_JoyFire1:
-											//Accion seleccionar
-											break;
-									case SDL_JoyFire4:
-											// Accion salir ;
-											exitloop=1;
-											break;
-									}
-							}								
-         break;
+				case SDLK_RIGHT:
+					qopt=1;
+						break;
+				case SDLK_RETURN:
+				case SDLK_SPACE: 
+						//Accion seleccionar
+						if (!qopt)
+						{
+						 //SAVESNAP
+						snapshot_save(snapfilename);
+						}
+						else savefail=2; //CANCELED
 
-///////////////			
-			
-			
-		case SDL_KEYDOWN:
-			switch (event.key.keysym.sym) 
-            {
+						qexit=1;
+						break;
 
-			case SDLK_LEFT:
-                 tablepos--;
-//                 redraw=1;
-//				move_dir = -1;
-//				move_tick = 0;
+				case SDLK_ESCAPE:
+				case 'q':
+						qexit=1;
+						break;
+				default:
+						break;
+			    }
+
+			 } //Switch
+		}//While event
+
+	  }
+	//save
+	}
+
+
+char snapmsg[60];
+
+switch (savefail)
+  {
+	case 0:  //OK
+		strcpy (snapmsg, "SNA Save OK!");
+		break;
+	case 1:  //Dir not creatabl
+		strcpy (snapmsg, "Directory error!");
+
+		break;
+	case 2:  //Dir not creatabl
+		strcpy (snapmsg, "Canceled saving!");
+
+		break;
+	default:
+
+		break;
+
+  }
+
+
+if (savefail > 0)
+	{
+	//ask
+	int qexit;
+ 	SDL_Event qevent;
+
+	qexit=0;
+
+	while (!qexit)
+	  {
+		SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+		SDL_UpdateRect(montaje, 0,0,0,0);
+		displaytext( 70, 100 ,snapmsg, getfontcolor(250, 250, 0));
+
+		displaytext( 100, 125 ,"OK!", getfontcolor(250,0, 0));
+		menu_blit();
+
+
+
+		//SDL EVALUATE
+		while(SDL_PollEvent(&qevent)) 
+		 {
+			switch(qevent.type)
+			 {
+			 case SDL_JOYBUTTONDOWN:
+				 switch (qevent.jbutton.button)
+				  {
+					case SDL_JoyFire1:
+					case SDL_JoyFire4:
+						qexit=1;
+						break;
+				  }
 				break;
-			case SDLK_RIGHT:
-			     tablepos++;
-//                 redraw=1;			     
-//				move_dir = 1;
-//				move_tick = 0;
-				break;
-			default:
-				break;
-            }
-		case SDL_KEYUP:
-			switch (event.key.keysym.sym) 
-            {
-			case SDLK_LEFT:
-			case SDLK_RIGHT:
-//				move_dir = 0;
-//				move_tick = 0;
-				break;
-			case SDLK_SPACE: 
-			     exitloop=1;
-//                 redraw=1;			     
-//				move_dir = 1;
-//				move_tick = 0;
-				break;
-			default:
-				break;
-			}
 
-			default:
-				break;
+			case SDL_KEYDOWN:
+			 switch (qevent.key.keysym.sym) 
+            		  {
 
-	} //END SWITCH EVENT TYPE SDL
+				case SDLK_RETURN:
+				case SDLK_SPACE: 
+				case SDLK_ESCAPE:
+				case 'q':
+						//Accion seleccionar
+						qexit=1;
+						break;
+				default:
+						break;
+			    }
 
-if ( tablepos > 42 ) tablepos=5;
+			 } //Switch
+		}//While event
 
-if ( tablepos < 5 ) tablepos=42;
-
-      
-      } // While are events SDL
-
-  }//ISOLATE 1
-
-
- }//While exitloop
- return 0;
- 
-}//saveSnapGUI 
-
+	  }
+	//save
+	}
 */
 
 
+
+return 0;
+}//LoadSnap 
 
 
 
@@ -1478,9 +1701,19 @@ int menu_eval_snap (int cur_menupos){
                                flag =1;
                                }
                                break;
-                case 1:  //1 Save snap
+                case 1:  //2 Save snap
                                {
                                saveSnap();
+                               redraw=1;
+                               flag =1;
+                               }
+
+                               break;
+                case 2:  //3 Fastload snap
+                               {
+                               loadSnap();
+                               redraw=1;
+                               flag =1;
                                }
 
                                break;
@@ -2011,7 +2244,7 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 	option_menusnap[6]=0;
     strcpy(text_menusnap[1].text,"Load Snapshot");
     strcpy(text_menusnap[2].text,"Save Snapshot");
-    strcpy(text_menusnap[3].text,"--------");
+    strcpy(text_menusnap[3].text,"Fastload Snapshot");
     strcpy(text_menusnap[4].text,"--------");
     strcpy(text_menusnap[5].text,"--------");
     strcpy(text_menusnap[6].text,"--------");
