@@ -1258,7 +1258,7 @@ int snapshot_load (char *pchFileName)
 {
    int n;
    dword dwSnapSize, dwModel;
-   char chPath[_MAX_PATH + 1];
+//   char chPath[_MAX_PATH + 1];
    byte val;
    reg_pair port;
    t_SNA_header sh;
@@ -2717,9 +2717,9 @@ void vdu_init_null (bool bolInit) //dibuja NADA
 
 int emulator_patch_ROM (void)
 {
-   char chPath[_MAX_PATH + 1];
+   //char chPath[_MAX_PATH + 1];
    byte *pbPtr;
-   int valueROM;
+//   int valueROM;
 /*
    strncpy(chPath, CPC.rom_path, sizeof(chPath)-2);
    strcat(chPath, "/");
@@ -2731,7 +2731,8 @@ int emulator_patch_ROM (void)
       return ERR_CPC_ROM_MISSING;
    }
 */
-     valueROM=setup_builtin_roms(CPC.model);
+//     valueROM=
+setup_builtin_roms(CPC.model);
 
 
    if (CPC.kbd_layout) {
@@ -2860,8 +2861,8 @@ void emulator_reset (bool bolMF2Reset)
 
 int emulator_init (void)
 {
-   int iErr, iRomNum;
-   char chPath[_MAX_PATH + 1];
+   int iErr;//, iRomNum;
+   //char chPath[_MAX_PATH + 1];
    char *pchRomData;
 
    pbGPBuffer = new byte [128*1024]; // attempt to allocate the general purpose buffer
@@ -3258,6 +3259,107 @@ void audio_resume (void)
 
 void video_set_style (void)
 {
+switch (CPC.scr_bpp)
+{
+case 32:
+
+   if (dwXScale==2)
+   {
+   switch(CPC_render_mode)
+   {
+ 	case 0:  //PROGESS
+
+               mode_handler[0] = draw32bpp_mode0_double;
+               mode_handler[1] = draw32bpp_mode1_double;
+               mode_handler[2] = draw32bpp_mode2_double;
+               mode_handler[3] = draw32bpp_mode0_double;
+               border_handler = draw32bpp_border_double;
+		break;
+
+      	case 1:  //SCANLINES
+
+               mode_handler[0] = draw32bpp_mode0;
+               mode_handler[1] = draw32bpp_mode1;
+               mode_handler[2] = draw32bpp_mode2;
+               mode_handler[3] = draw32bpp_mode0;
+               border_handler = draw32bpp_border;
+	         break;
+
+	case 2:  //INTERLACED
+
+               mode_handler[0] = draw32bpp_mode0_scanplus;
+               mode_handler[1] = draw32bpp_mode1_scanplus;
+               mode_handler[2] = draw32bpp_mode2_scanplus;
+               mode_handler[3] = draw32bpp_mode0_scanplus;
+               border_handler = draw32bpp_border_scanplus;
+	         break;
+
+
+   }
+
+   CPC_render_msg_delay=150;
+
+  } else {
+               mode_handler[0] = draw32bpp_mode0_half;
+               mode_handler[1] = draw32bpp_mode1_half;
+               mode_handler[2] = draw32bpp_mode2_half;
+               mode_handler[3] = draw32bpp_mode0_half;
+               border_handler = draw32bpp_border_half;
+  }
+	break;
+
+case 24:
+
+   if (dwXScale==2)
+   {
+   switch(CPC_render_mode)
+   {
+ 	case 0:  //PROGESS
+
+               mode_handler[0] = draw24bpp_mode0_double;
+               mode_handler[1] = draw24bpp_mode1_double;
+               mode_handler[2] = draw24bpp_mode2_double;
+               mode_handler[3] = draw24bpp_mode0_double;
+               border_handler = draw24bpp_border_double;
+		break;
+
+      	case 1:  //SCANLINES
+
+               mode_handler[0] = draw24bpp_mode0;
+               mode_handler[1] = draw24bpp_mode1;
+               mode_handler[2] = draw24bpp_mode2;
+               mode_handler[3] = draw24bpp_mode0;
+               border_handler = draw24bpp_border;
+	         break;
+
+	case 2:  //INTERLACED
+
+               mode_handler[0] = draw24bpp_mode0_scanplus;
+               mode_handler[1] = draw24bpp_mode1_scanplus;
+               mode_handler[2] = draw24bpp_mode2_scanplus;
+               mode_handler[3] = draw24bpp_mode0_scanplus;
+               border_handler = draw24bpp_border_scanplus;
+	         break;
+
+
+   }
+
+   CPC_render_msg_delay=150;
+
+  } else {
+               mode_handler[0] = draw24bpp_mode0_half;
+               mode_handler[1] = draw24bpp_mode1_half;
+               mode_handler[2] = draw24bpp_mode2_half;
+               mode_handler[3] = draw24bpp_mode0_half;
+               border_handler = draw24bpp_border_half;
+  }
+	break;
+case 16:
+case 15:
+
+
+
+
    if (dwXScale==2)
    {
    switch(CPC_render_mode)
@@ -3301,6 +3403,58 @@ void video_set_style (void)
                mode_handler[3] = draw16bpp_mode0_half;
                border_handler = draw16bpp_border_half;
   }
+
+	break;
+
+
+case 8:
+
+   if (dwXScale==2)
+   {
+   switch(CPC_render_mode)
+   {
+ 	case 0:  //PROGESS
+
+               mode_handler[0] = draw8bpp_mode0_double;
+               mode_handler[1] = draw8bpp_mode1_double;
+               mode_handler[2] = draw8bpp_mode2_double;
+               mode_handler[3] = draw8bpp_mode0_double;
+               border_handler = draw8bpp_border_double;
+		break;
+
+      	case 1:  //SCANLINES
+
+               mode_handler[0] = draw8bpp_mode0;
+               mode_handler[1] = draw8bpp_mode1;
+               mode_handler[2] = draw8bpp_mode2;
+               mode_handler[3] = draw8bpp_mode0;
+               border_handler = draw8bpp_border;
+	         break;
+
+	case 2:  //INTERLACED
+
+               mode_handler[0] = draw8bpp_mode0_scanplus;
+               mode_handler[1] = draw8bpp_mode1_scanplus;
+               mode_handler[2] = draw8bpp_mode2_scanplus;
+               mode_handler[3] = draw8bpp_mode0_scanplus;
+               border_handler = draw8bpp_border_scanplus;
+	         break;
+
+
+   }
+
+   CPC_render_msg_delay=150;
+
+  } else {
+               mode_handler[0] = draw8bpp_mode0_half;
+               mode_handler[1] = draw8bpp_mode1_half;
+               mode_handler[2] = draw8bpp_mode2_half;
+               mode_handler[3] = draw8bpp_mode0_half;
+               border_handler = draw8bpp_border_half;
+  }
+	break;
+
+}// bpp switch
 
    if (back_surface) SDL_FillRect(back_surface, NULL, SDL_MapRGB(back_surface->format, 0, 0, 0)); // clear back buffer
    CPC.scr_line_offs = CPC.scr_bps * dwYScale;
@@ -3360,6 +3514,37 @@ int video_set_palette (void)
 
    switch(CPC.scr_bpp)
    {
+      case 32:
+      case 24:
+         if (!CPC.scr_tube) {
+            int n;
+            for (n = 0; n < 32; n++) {
+               dword red = (dword)(colours_rgb[n][0] * (CPC.scr_intensity / 10.0) * 255);
+               if (red > 255) { // limit to the maximum
+                  red = 255;
+               }
+               dword green = (dword)(colours_rgb[n][1] * (CPC.scr_intensity / 10.0) * 255);
+               if (green > 255) {
+                  green = 255;
+               }
+               dword blue = (dword)(colours_rgb[n][2] * (CPC.scr_intensity / 10.0) * 255);
+               if (blue > 255) {
+                  blue = 255;
+               }
+               colour_table[n] = blue | (green << 8) | (red << 16);
+            }
+         } else {
+            int n;
+            for (n = 0; n < 32; n++) {
+               dword green = (dword)(colours_green[n] * (CPC.scr_intensity / 10.0) * 255);
+               if (green > 255) {
+                  green = 255;
+               }
+               colour_table[n] = green << 8;
+            }
+         }
+         break;
+
       case 16:
          if (!CPC.scr_tube) {
             int n;
@@ -3445,9 +3630,8 @@ int video_set_palette (void)
                }
                colour_table[n] = blue | (green << 8) | (red << 16);
 
-        fprintf(stdout, "Pen: %2d R-%5d G-%5d B-%5d   TOTAL-%5d\n", n , red , green , blue, colour_table[n] );
-               
-               
+        //fprintf(stdout, "Pen: %2d R-%5d G-%5d B-%5d   TOTAL-%5d\n", n , red , green , blue, colour_table[n] );
+
             }
          } else {
             int n;
@@ -3492,6 +3676,7 @@ int video_set_palette (void)
 int video_init (void)
 {
 Uint32 bpp;
+int bitspixels;
 
 
    if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) { // initialize the video subsystem
@@ -3506,20 +3691,19 @@ Uint32 bpp;
    }
 
 CPC.scr_fs_bpp=16;
-int bitspixels;
-bitspixels=CPC.scr_fs_bpp;
 
 
 //printf("Checking mode bpp.\n");
 
 bpp=SDL_VideoModeOK(CPC.scr_fs_width,CPC.scr_fs_height, CPC.scr_fs_bpp,flags);
 if(bpp !=CPC.scr_fs_bpp){
-  printf("Mode not available.\n");
+/*  printf("Mode not available.\n");
   printf("Caprice needs %dbpp. System is in %dbpp\n",CPC.scr_fs_bpp, bpp);
-
+  printf("Trying to switch to %dbpp.\n", bpp);*/
+  CPC.scr_fs_bpp=bpp;
 }
 
-
+bitspixels=CPC.scr_fs_bpp;
 
    if (!(video_surface = SDL_SetVideoMode(CPC.scr_fs_width,CPC.scr_fs_height, CPC.scr_fs_bpp,
     flags))) { // attempt to set the required video mode
@@ -3563,7 +3747,7 @@ if(bpp !=CPC.scr_fs_bpp){
    SDL_FillRect(video_surface, NULL, SDL_MapRGB(video_surface->format, 0, 0, 0)); // clear back buffer
    SDL_ShowCursor(SDL_DISABLE); // hide the mouse cursor
 
-   SDL_WM_SetCaption("CapriceRPI2" VERSION_STRING, "CapriceRPI2");
+   SDL_WM_SetCaption("CapriceRPI" VERSION_STRING, "CapriceRPI");
 
    return 0;
 }
@@ -3586,9 +3770,9 @@ void video_shutdown (void)
 
 int getConfigValueInt (char* pchFileName, const char* pchSection, const char* pchKey, int iDefaultValue)
 {
-   FILE* pfoConfigFile;
-   char chLine[MAX_LINE_LEN + 1];
-   char* pchToken;
+   //FILE* pfoConfigFile;
+   //char chLine[MAX_LINE_LEN + 1];
+   //char* pchToken;
 
 /*     
        //VALUES NOW ARE HARDCODED. NO CFG FILE!!!!
@@ -3619,9 +3803,9 @@ int getConfigValueInt (char* pchFileName, const char* pchSection, const char* pc
 
 void getConfigValueString (char* pchFileName, const char* pchSection, const char* pchKey, char* pchValue, int iSize, const char* pchDefaultValue)
 {
-   FILE* pfoConfigFile;
-   char chLine[MAX_LINE_LEN + 1];
-   char* pchToken;
+   //FILE* pfoConfigFile;
+   //char chLine[MAX_LINE_LEN + 1];
+   //char* pchToken;
 /*     
        //VALUES NOW ARE HARDCODED. NO CFG FILE!!!!
    if ((pfoConfigFile = fopen(pchFileName, "r")) != NULL) 

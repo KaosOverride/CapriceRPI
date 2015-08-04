@@ -269,10 +269,10 @@ void access_video_memory(int repeat_count)
 
 
 
-//#include "draw_8bpp.c"
+#include "videodraw/draw_8bpp.c"
 
 #include "videodraw/draw_16bpp.c"
 
-//#include "draw_24bpp.c"
+#include "videodraw/draw_24bpp.c"
 
-//#include "draw_32bpp.c"
+#include "videodraw/draw_32bpp.c"

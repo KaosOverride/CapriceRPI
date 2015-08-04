@@ -46,8 +46,8 @@ int validate_filename (ams_file dir_entry, unsigned char *filen)
 	unsigned char tmpEXT[4];
 	unsigned char tmpNAME[9];
 	unsigned int validEXT,validNAME,NULLext;
-	tmpEXT[3]=NULL;
-	tmpNAME[8]=NULL;
+	tmpEXT[3]='\0';
+	tmpNAME[8]='\0';
 	filen[13]=0; //filename score
 
 
@@ -119,8 +119,8 @@ int validate_filename (ams_file dir_entry, unsigned char *filen)
 		filen[namoff]='.';
 		namoff++;
 		for (ind=0;ind<3;ind++){filen[ind+namoff]=tmpEXT[ind];}
-		filen[namoff+3]=NULL;
-		}  else  filen[namoff]=NULL;
+		filen[namoff+3]='\0';
+		}  else  filen[namoff]='\0';
 		//printf ("- %s -\n",filen);
 
 
@@ -265,7 +265,7 @@ int CPC_BootStartDisk (t_drive bootdisc)
 
 
 	for (in=0;in<64;in++)
-	{	if (filename[in][0]!=NULL)
+	{	if (filename[in][0]!='\0')
 			{
 //			printf("---%s\n",filename[in]);
 			if (filename[in][13]>best_score)
@@ -287,11 +287,11 @@ int CPC_BootStartDisk (t_drive bootdisc)
 		for (in=0;in<12;in++)
 			{
 			runstring[in+4]=best_filename[in];
-			if (runstring[in+4]==NULL)
+			if (runstring[in+4]=='\0')
 				{
 				runstring[in+4]=enterstring[0];
 				runstring[in+5]=enterstring[1];
-				runstring[in+7]=NULL;
+				runstring[in+7]='\0';
 				break;
 				}
 			}

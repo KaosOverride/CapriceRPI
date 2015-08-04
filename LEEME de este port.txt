@@ -1,5 +1,5 @@
-Caprice RPI2 V0.2 - W.I.P. 2 - Adapted/ported by KaosOverride 2015
-(Caprice32 4.1.0 for Raspberry PI2)
+Caprice RPI2 V1.0 - Release - Adapted/ported by KaosOverride 2015
+(Caprice32 4.1.0 for Raspberry PI)
 
 Caprice32 - Amstrad CPC Emulator
 (c) Copyright 1997-2004 Ulrich Doewich
@@ -20,9 +20,10 @@ Caracteristicas:
 -Soporta DSK, CDT y SNA desde menus y linea de comandos. Ideal para frontends y launchers
 -Modos graficos Low-res para RPI1
 -Autoejecucion de DSKs y CDTs (cinta carga acelerada x5)
+-Grabar SNA estilo slots numerados para cada DSK CDT o SNA
 
 Por hacer:
--Mejorar manejo de los menues
+-No se. Decidme vosotros que mas le puedo poner!!
 _____________________________________________________________________________________________________
 
 Opciones
@@ -59,7 +60,7 @@ Iconos:
 Seleccionar con cursores + Entrar o Joystick + Fire 1
 F8 o Fire 4 vuelve a la emulacion. 
 
-Submenues
+Submenus
 ---------
 Arriba/abajo (cursores/joystick) navega por opciones
 Derecha (cursores/joystick), Entrar o Fire 1 selecciona opcion
@@ -94,6 +95,20 @@ ________________________________________________________________________________
 Historial de versiones
 ======================
 
+V1.0 Release
+====
+-Limpieza de codigo. Pruebas finales.
+-Soporte de modos graficos de 32bpp. No recomendado para un buen rendimiento.
+
+V0.9 Pre-release
+====
+-Soporte de grabacion de SNA a modo de slots para cada DSK, CDT o SNA usado
+-Soporte de carga rapida de los SNA modo slot dependientes de cada DSK, CDT o SNA
+-Reorganizacion de los menus. Soporte carga discos unidad B
+-Opcion --notapeturbo para desactivar la carga rapida de cintas.
+-Deteccion de modelo de RPI 1/2. Desactivados modos Hi-Res para RPI1. Mensaje de 
+ bienvenida refleja RPI, en los menus marca RPI1 o RPI2 segun modelo.
+
 V0.2 W.I.P 2
 ====
 -Soporte de autoejecucion completo en disco y cinta.
@@ -109,7 +124,7 @@ V0.1 W.I.P 1
 V0.01 ALPHA - GP2x W.I.P 6 fast port
 ====
 -Configurado el viejo port para GP2x para 732x534 en lugar de 320x240
--Reescritura de los menues para la nueva configuracion.
+-Reescritura de los menus para la nueva configuracion.
 -Ejecutable monolitico portable. Sin dependencias de ficheros externos (ROMs, etc)
 -Teclado virtual no funcional-incompleto
 

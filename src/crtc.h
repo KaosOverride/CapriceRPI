@@ -22,7 +22,7 @@
 #include "z80.h"
 
 void access_video_memory(int repeat_count);
-/*
+
 void draw8bpp_border(void);
 void draw8bpp_mode0(dword addr);
 void draw8bpp_mode1(dword addr);
@@ -35,7 +35,12 @@ void draw8bpp_border_half(void);
 void draw8bpp_mode0_half(dword addr);
 void draw8bpp_mode1_half(dword addr);
 void draw8bpp_mode2_half(dword addr);
-*/
+
+void draw8bpp_border_scanplus(void);
+void draw8bpp_mode0_scanplus(dword addr);
+void draw8bpp_mode1_scanplus(dword addr);
+void draw8bpp_mode2_scanplus(dword addr);
+
 
 void draw16bpp_border(void);
 void draw16bpp_mode0(dword addr);
@@ -56,7 +61,7 @@ void draw16bpp_mode1_scanplus(dword addr);
 void draw16bpp_mode2_scanplus(dword addr);
 
 
-/*
+
 void draw24bpp_border(void);
 void draw24bpp_mode0(dword addr);
 void draw24bpp_mode1(dword addr);
@@ -70,6 +75,12 @@ void draw24bpp_mode0_half(dword addr);
 void draw24bpp_mode1_half(dword addr);
 void draw24bpp_mode2_half(dword addr);
 
+void draw24bpp_border_scanplus(void);
+void draw24bpp_mode0_scanplus(dword addr);
+void draw24bpp_mode1_scanplus(dword addr);
+void draw24bpp_mode2_scanplus(dword addr);
+
+
 void draw32bpp_border(void);
 void draw32bpp_mode0(dword addr);
 void draw32bpp_mode1(dword addr);
@@ -82,5 +93,11 @@ void draw32bpp_border_half(void);
 void draw32bpp_mode0_half(dword addr);
 void draw32bpp_mode1_half(dword addr);
 void draw32bpp_mode2_half(dword addr);
-*/
+
+void draw32bpp_border_scanplus(void);
+void draw32bpp_mode0_scanplus(dword addr);
+void draw32bpp_mode1_scanplus(dword addr);
+void draw32bpp_mode2_scanplus(dword addr);
+
+
 #endif

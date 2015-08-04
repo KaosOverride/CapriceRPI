@@ -269,7 +269,7 @@ const struct {
 int getExtId( char *szFilePath) {
 	char *pszExt;
 	int i;
-	if (pszExt = strrchr(szFilePath, '.'))
+	if ((pszExt = strrchr(szFilePath, '.')) )
 	{
 		pszExt++;
 		for (i = 0; stExtentions[i].nExtId != EXT_UNKNOWN; i++)
@@ -634,9 +634,9 @@ void drawlist(char *extension)
 int eventloop(int ext) {
 	SDL_Event event;
 	int flag = 0;
-	static int move_dir = 0;
-	static Uint32 move_tick = 0;
-	move_dir = 0;
+//	static int move_dir = 0;
+//	static Uint32 move_tick = 0;
+//	move_dir = 0;
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
 //////////////
@@ -645,15 +645,15 @@ int eventloop(int ext) {
 		case SDL_JOYBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
 
-				move_dir = 0;
+				//move_dir = 0;
 				pcjoy_update (event);
 
 				if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
 					{		//Action UP
 					cur_pos--;
 					redraw=1;
-					move_dir = -1;
-					move_tick = 0;
+					//move_dir = -1;
+					//move_tick = 0;
 					break;
 					};
 
@@ -661,14 +661,14 @@ int eventloop(int ext) {
 					{		//Action DOWN
 					cur_pos++;
 					redraw=1;			     
-					move_dir = 1;
-					move_tick = 0;
+					//move_dir = 1;
+					//move_tick = 0;
 					break;	
 					};
 
 				if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
 					{		//Action LEFT
-					move_dir = 0;
+					//move_dir = 0;
 					if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);//filter
 					break;
 					};
@@ -678,7 +678,7 @@ int eventloop(int ext) {
 					if(files[cur_pos].isdir){
 						strcat(open_path, files[cur_pos].name);
 						getDir(open_path, 0,ext);
-						move_dir = 0;
+						//move_dir = 0;
 						cur_pos = 0;
 						draw_pos = 0;
 						redraw = 1;
@@ -697,7 +697,7 @@ int eventloop(int ext) {
 						{
 							strcat(open_path, files[cur_pos].name);
 							getDir(open_path, 0,ext);
-							move_dir = 0;
+							//move_dir = 0;
 							cur_pos = 0;
 							draw_pos = 0;
 							redraw = 1;
@@ -706,7 +706,7 @@ int eventloop(int ext) {
 						}
 						break;
 					case SDL_JoyFire2:
-						move_dir = 0;
+						//move_dir = 0;
 						if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);
 						break;
 					case SDL_JoyFire4:		// Accion salir ;
@@ -736,17 +736,17 @@ int eventloop(int ext) {
 			case SDLK_UP:
 				cur_pos--;
 				redraw=1;
-				move_dir = -1;
-				move_tick = 0;
+				//move_dir = -1;
+				//move_tick = 0;
 				break;
 			case SDLK_DOWN:
 				cur_pos++;
 				redraw=1;
-				move_dir = 1;
-				move_tick = 0;
+				//move_dir = 1;
+				//move_tick = 0;
 				break;
 			case SDLK_LEFT:
-				move_dir = 0;
+				//move_dir = 0;
 				if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);
 				break;
 			case SDLK_RIGHT:
@@ -755,7 +755,7 @@ int eventloop(int ext) {
 				{
 					strcat(open_path, files[cur_pos].name);
 					getDir(open_path, 0,ext);
-					move_dir = 0;
+					//move_dir = 0;
 					cur_pos = 0;
 					draw_pos = 0;
 					redraw = 1;
@@ -781,8 +781,8 @@ int eventloop(int ext) {
 			switch (event.key.keysym.sym) {
 			case SDLK_UP:
 			case SDLK_DOWN:
-				move_dir = 0;
-				move_tick = 0;
+				//move_dir = 0;
+				//move_tick = 0;
 				break;
 			default:
 				break;
@@ -791,6 +791,7 @@ int eventloop(int ext) {
 		}
 	}
 /*
+
 	if( (move_dir != 0) && ((move_tick + 70) < SDL_GetTicks()) ) {
 
 		static int boost = 0;
@@ -814,7 +815,8 @@ int eventloop(int ext) {
 			boost = 1;
 		}
 		
-	}*/
+	}
+*/
 			if(cur_pos >= nfiles) cur_pos =  nfiles - 1;
 			if(cur_pos < 0) cur_pos = 0;
 	return flag;
@@ -971,7 +973,7 @@ int option_menuscreen[8] ;
 int opt_settingsconfig=1;
 static int maxopt_settingsconfig=5; //Max items in menu
 textmenu text_settingsconfig[8];
-int option_settingsconfig[8] ;
+unsigned int option_settingsconfig[8] ;
 
 
 
@@ -1053,9 +1055,10 @@ int saveSnap ()
 {
  char snapfilename[_MAX_PATH];
  char pathtmp[_MAX_PATH];
- int tablepos,namepos,exitloop=0;
+// int tablepos,namepos,exitloop=0;
+ int exitloop=0;
  struct stat st = {0};
- int fmkdir;
+ int fmkdir=0;
  int savefail=100;
 
  snapfilename[0]='\0';
@@ -1369,9 +1372,10 @@ int loadSnap ()
 {
  char snapfilename[_MAX_PATH];
  char pathtmp[_MAX_PATH];
- int tablepos,namepos,exitloop=0;
+// int tablepos,namepos,exitloop=0;
+ int exitloop=0;
  struct stat st = {0};
- int fmkdir;
+ int fmkdir=0;
  int loadfail=100;
 
  snapfilename[0]='\0';
@@ -1921,8 +1925,8 @@ int eventloop_menu(int menu_type) {
 	SDL_Event event;
 	int make_option=0;
 	int flag = 0;
-	static int move_dir = 0;
-	move_dir = 0;
+//	static int move_dir = 0;
+//	move_dir = 0;
 
 	while(SDL_PollEvent(&event)) 
 	{
@@ -1934,20 +1938,20 @@ int eventloop_menu(int menu_type) {
 		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 		case SDL_JOYBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
-				move_dir = 0;
+				//move_dir = 0;
 				pcjoy_update (event);
 				if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
 				{		//Action UP
 					cur_menupos--;
 					redraw=1;
-					move_dir = -1;
+					//move_dir = -1;
 					break;
 				};
 				if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
 				{		//Action DOWN
 					cur_menupos++;
 					redraw=1;			     
-					move_dir = 1;
+					//move_dir = 1;
 					break;
 				};
                   		if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
@@ -1958,7 +1962,7 @@ int eventloop_menu(int menu_type) {
 				{		//Action RIGHT
 					redraw=1;
 					make_option=1;
-					move_dir = 0;
+					//move_dir = 0;
 					break;
 				};
 
@@ -1969,7 +1973,7 @@ int eventloop_menu(int menu_type) {
 					case SDL_JoyFire1:	//Accion seleccionar
 						redraw=1;
 						make_option=1;
-						move_dir = 0;
+						//move_dir = 0;
 						break;
 					case SDL_JoyFire4:	// Accion salir ;
 						flag = 2;
@@ -1985,18 +1989,18 @@ int eventloop_menu(int menu_type) {
 				case SDLK_UP:
 					cur_menupos--;
 					redraw=1;
-					move_dir = -1;
+					//move_dir = -1;
 					break;
 				case SDLK_DOWN:
 					cur_menupos++;
 					redraw=1;
-					move_dir = 1;
+					//move_dir = 1;
 					break;
 				case SDLK_RETURN:
 				case SDLK_RIGHT:
 					redraw=1;
 					make_option=1;
-					move_dir = 0;
+					//move_dir = 0;
 					break;
 				case SDLK_LEFT:
 					flag = 1;
@@ -2019,7 +2023,7 @@ int eventloop_menu(int menu_type) {
 			switch (event.key.keysym.sym) {
 				case SDLK_UP:
 				case SDLK_DOWN:
-					move_dir = 0;
+					//move_dir = 0;
 					break;
 				default:
 					break;
@@ -2203,8 +2207,8 @@ void draw_menusnap(void) {
 	int y = 50;
 	int i;
 	int color_menu;
-	SDL_Rect dstrect;
-	dstrect.x = 20;
+//	SDL_Rect dstrect;
+//	dstrect.x = 20;
 
 	SDL_BlitSurface(fondo, NULL, montaje, NULL);
 	   SDL_UpdateRect(montaje, 0,0,0,0);
@@ -2218,7 +2222,7 @@ void draw_menusnap(void) {
         //      sprintf(tmpstr,"%d",option_menusnap[opt_menusnap]);
 
               
-		dstrect.y = y;
+		//dstrect.y = y;
 
 		opt_menusnap++;
 	}   
@@ -2409,128 +2413,14 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
 
 
 
-// MENU CONFIG
-
-/*
-void draw_menuconfig(void) {
-	int y = 50;
-	int i;
-	SDL_Rect dstrect;
-	dstrect.x = 20;
-
-	SDL_BlitSurface(fondo, NULL, montaje, NULL);
-	   SDL_UpdateRect(montaje, 0,0,0,0);
-	displaytext( 105, 25 ,"CAPRICE MENU", getfontcolor(250, 250, 0));
-	opt_menuconfig=1;
-	for(i=draw_menupos;(opt_menuconfig<=maxopt_menuconfig) && (y < 250);i++, y+=25){
-		int color_menu =0;
-        if(i == cur_menupos) {color_menu=0;} else {color_menu=250;};
-        displaytext( 50, y ,text_menuconfig[opt_menuconfig].text, getfontcolor(250, color_menu, 0)); 
-        char tmpstr[6];
-        sprintf(tmpstr,"%d",option_menuconfig[opt_menuconfig]);
-        switch (opt_menuconfig)
-              {
-                 case 1:
-                       {switch (option_menuconfig[opt_menuconfig]) 
-                             {
-                        case 0:
-                          displaytext( 250, y ,"OFF", getfontcolor(250, color_menu, 0));
-                          break;
-                        case 1:
-                          displaytext( 250, y ,"ON", getfontcolor(250, color_menu, 0));
-                          break;
-                             }
-                        }
-                        break;
-                 case 2:
-                 case 3:
-                        displaytext( 250, y ,tmpstr, getfontcolor(250, color_menu, 0));
-                        break;
-                 case 5:
-                 case 4:
-                 case 6:                    
-                 default:
-                         break;   
-
-              }
-
-		dstrect.y = y;
-
-		opt_menuconfig++;
-	}   SDL_UpdateRect(montaje, 0,0,0,0);
-}
-
-
-
-int load_menuconfig( )
-{
-
-int flag;
-// char *path;
-	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
-  	SDL_UpdateRect(montaje, 0,0,0,0);
-	//strcpy(path, "./snap/");
-	//getDir(path, 0);
-    	needreset=0;
-	option_menuconfig[1]=CPC.snd_enabled;
-	option_menuconfig[2]=CPC.scr_fskip;
-	option_menuconfig[3]=200;  //FAKEspeed(c) for now
-	option_menuconfig[4]=CPC.model;
-	option_menuconfig[5]=!CPC.scr_tube;
-	option_menuconfig[6]=0;
-    strcpy(text_menuconfig[1].text,"Audio");
-    strcpy(text_menuconfig[2].text,"Frameskip");
-    strcpy(text_menuconfig[3].text,"GP2x Speed (fake)");
-    strcpy(text_menuconfig[4].text,"CPC Settings    >>>");
-    strcpy(text_menuconfig[5].text,"Reset CPC");
-    strcpy(text_menuconfig[6].text,"------------");
-
-    maxopt_menucurrent=maxopt_menuconfig;
-    
-	cur_menupos = 0;
-	draw_menupos = 0;
-	redraw = 1;
-	
-	while((flag = eventloop_menu(MENU_OPT)) == 0) {
-		if(redraw) {
-			draw_menuconfig();
-			menu_blit();
-			//SDL_Delay (1000);
-			redraw = 0;
-		}
-	}
-
-	if(flag == 1) {  //???
-
-	CPC.snd_enabled=option_menuconfig[1];
-	CPC.scr_fskip=option_menuconfig[2];
-//	option_menuconfig[3]=200;  //FAKEspeed(c) for now
-//	CPC.model=option_menuconfig[4];
-//	CPC.scr_tube=!option_menuconfig[5];
-//	video_set_palette();
-//	CPC.ram_size=option_menuconfig[5];
-if (needreset==1){
-                  emulator_reset(false);
-                  }
-
-		return 1;
-	}//flag=1
-
-
-	return 0;
-}
-
-*/
-
-
 //MENU SCREEN
 
 
 void draw_menuscreen(void) {
 	int y = 50;
 	int i;
-	SDL_Rect dstrect;
-	dstrect.x = 20;
+//	SDL_Rect dstrect;
+//	dstrect.x = 20;
 
 	SDL_BlitSurface(fondo, NULL, montaje, NULL);
 	   SDL_UpdateRect(montaje, 0,0,0,0);
@@ -2575,7 +2465,7 @@ void draw_menuscreen(void) {
 
               }
 
-		dstrect.y = y;
+//		dstrect.y = y;
 
 		opt_menuscreen++;
 	}   SDL_UpdateRect(montaje, 0,0,0,0);
@@ -2645,8 +2535,8 @@ int flag;
 void draw_settingsconfig(void) {
 	int y = 50;
 	int i;
-	SDL_Rect dstrect;
-	dstrect.x = 20;
+//	SDL_Rect dstrect;
+//	dstrect.x = 20;
 
 	SDL_BlitSurface(fondo, NULL, montaje, NULL);
 	   SDL_UpdateRect(montaje, 0,0,0,0);
@@ -2697,7 +2587,7 @@ void draw_settingsconfig(void) {
                          break;   
               }
 
-		dstrect.y = y;
+//		dstrect.y = y;
 
 		opt_settingsconfig++;
 	}   SDL_UpdateRect(montaje, 0,0,0,0);

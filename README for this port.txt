@@ -1,5 +1,5 @@
-Caprice RPI2 V0.2 - W.I.P. 2 - Adapted/ported by KaosOverride 2015
-(Caprice32 4.1.0 for Raspberry PI2)
+Caprice RPI2 V1.0 - Pre-release - Adapted/ported by KaosOverride 2015
+(Caprice32 4.1.0 for Raspberry PI)
 
 Caprice32 - Amstrad CPC Emulator
 (c) Copyright 1997-2004 Ulrich Doewich
@@ -20,9 +20,10 @@ Features:
 -Supports DSK, CDT and SNA from menu and command line. Great for frontends and launchers
 -Autorun for DSKs and CDTs (tape loading x5)
 -Low-res modes for RPI1. Hi-res modes with progressive, scan-lines and interlaced effects
+-SNA saving slot-style for DSK, CDT and SNA.
 
 To do:
--Better menus handling
+-Don't know. Please, tell me what else can I do!!
 _____________________________________________________________________________________________________
 
 Options
@@ -93,6 +94,19 @@ ________________________________________________________________________________
 
 Release history
 ================
+
+V1.0 Release
+====
+-cleaned and checked code for release
+
+V0.9 Pre-release
+====
+-Support for slot-style SNA saving for DSK, CDT and SNA
+-Support for fast loading of slot-style SNA for each DSK, CDT o SNA
+-Menus rearrangement. Support for drive B disc loading
+-Option --notapeturbo for disabling fast tape load
+-RPI 1/2 model detection. Disabling Hi-Resmodes for RPI1. Welcome
+ message shows RPI, at the menu shows RPI1 or RPI2 depending model detected.
 
 V0.2 W.I.P 2
 ====
