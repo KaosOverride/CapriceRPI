@@ -1,4 +1,4 @@
-Caprice RPI2 V1.0 - Pre-release - Adapted/ported by KaosOverride 2015
+Caprice RPI2 V1.1 - Pre-release - Adapted/ported by KaosOverride 2015
 (Caprice32 4.1.0 for Raspberry PI)
 
 Caprice32 - Amstrad CPC Emulator
@@ -94,6 +94,12 @@ ________________________________________________________________________________
 
 Release history
 ================
+
+V1.0 Release
+====
+-GUI's transparency fixes
+-Autoboot fixes
+-Extra Makefile for not RPI devices
 
 V1.0 Release
 ====

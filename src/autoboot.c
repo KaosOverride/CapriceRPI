@@ -5,7 +5,7 @@
 /*                                      KaosOverride 2015         */
 /******************************************************************/
 
-// Tape Autoboot
+// Tape Autoboot  //////////////////////////////////////////////////
 
  void CPC_BootStartTape (){ 
 
@@ -25,7 +25,7 @@
 }
 
 
-//Disk Autoboot
+// Disk Autoboot  //////////////////////////////////////////////////
 
 #define FORMAT_DATA	0xC1
 #define FORMAT_SYSTEM	0x41
@@ -61,13 +61,13 @@ int validate_filename (ams_file dir_entry, unsigned char *filen)
 			{
 			NULLext=1;
 			validEXT=1;
-			filen[13]=filen[13]+32; //filename score update
+			filen[13]=filen[13]+16; //filename score update
 			}
 	if (strcmp((const char*)tmpEXT,"BAS") == 0)
 			{
 			NULLext=0;
 			validEXT=1;
-			filen[13]=filen[13]+16; //filename score update
+			filen[13]=filen[13]+32; //filename score update
 			}
 
 	if (strcmp((const char*)tmpEXT,"BIN") == 0)
@@ -87,11 +87,12 @@ int validate_filename (ams_file dir_entry, unsigned char *filen)
 		   if (tmpNAME[ind]==32) validNAME=1;
 		   if (tmpNAME[ind]==33) validNAME=1;
 		   if ( (tmpNAME[ind]>43) && (tmpNAME[ind]<57) ) validNAME=1;
-		   if ( (tmpNAME[ind]>65) && (tmpNAME[ind]<90) ) validNAME=1;
+		   if ( (tmpNAME[ind]>64) && (tmpNAME[ind]<90) ) validNAME=1;
 		   if (tmpNAME[0]==32) validNAME=0; //The exception!!
 
 		}
-//	if (validNAME==1) printf("-%s\n",tmpNAME);
+//	if (validNAME==0) printf("NOT-%s\n",tmpNAME);
+//	if (validNAME==1) printf("YES-%s\n",tmpNAME);
 
 	if (validNAME==0) return 0;
 
@@ -108,21 +109,23 @@ int validate_filename (ams_file dir_entry, unsigned char *filen)
 //Assemble filename string
 
 	namoff=0;
+
 	for (ind=0;ind<8;ind++)
 		{
+		if (tmpNAME[ind]==32) break;
 		filen[ind]=tmpNAME[ind];
 		namoff=ind;
-		if (filen[ind]==32) break;
 		}
+	namoff++;
+
 	if (NULLext == 0)
 		{
 		filen[namoff]='.';
 		namoff++;
 		for (ind=0;ind<3;ind++){filen[ind+namoff]=tmpEXT[ind];}
 		filen[namoff+3]='\0';
-		}  else  filen[namoff]='\0';
-		//printf ("- %s -\n",filen);
-
+		}
+		else  filen[namoff]='\0';
 
 	return 1;
 }
@@ -145,32 +148,6 @@ int CPC_BootStartDisk (t_drive bootdisc)
 	memset(filename,0,sizeof(filename));
 	memset(directory,0,sizeof(directory));
 
-	//is CPM
-
-	for (in=0;in<bootdisc.track[0][0].sectors;in++)
-	{
-		if (bootdisc.track[0][0].sector[in].CHRN[2] == FORMAT_SYSTEM )
-		{
-		sectdata=bootdisc.track[0][0].sector[in].data;
-		}
-	}
-
-
-	if (sectdata!=NULL) //got 0x41 sector?
-	{
-	cmp=sectdata[0];
-	for (in=1;in<512;in++)
-		{
-			if (sectdata[in]!=cmp)
-			{
-			AutoType_SetString("|CPM\n\r", FALSE);
-			return 1;
-			}
-		}
-	}
-	//printf ("Filesystem search:");
-
-	// So is no CPM...
 
 	//dual head not allowed
 	//printf ("...Sides:%d",bootdisc.sides);
@@ -278,6 +255,33 @@ int CPC_BootStartDisk (t_drive bootdisc)
 
 //	printf("%s  -->%i\n",best_filename,best_score);
 
+	if (best_score<40)
+	{
+	//is CPM??
+
+		for (in=0;in<bootdisc.track[0][0].sectors;in++)
+		{
+			if (bootdisc.track[0][0].sector[in].CHRN[2] == FORMAT_SYSTEM )
+			{
+			sectdata=bootdisc.track[0][0].sector[in].data;
+			}
+		}
+
+
+		if (sectdata!=NULL) //got 0x41 sector?
+		{
+		cmp=sectdata[0];
+		for (in=1;in<512;in++)
+			{
+			if (sectdata[in]!=cmp)
+				{
+				AutoType_SetString("|CPM\n\r", FALSE);
+				return 1;
+				}
+			}
+		}
+	// So is no CPM...
+	}
 
 	if (best_score > 0)
 		{

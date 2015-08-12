@@ -23,11 +23,10 @@ else
 	LIBS =  -lSDL -lSDL_ttf -lSDL_image -lz -lm -ldl -lfreetype -lpng12 -ljpeg 
 endif
 
-capriceRPI2: cap32.cpp menu.o autotype.o crtc.o fdc.o psg.o tape.o z80.o cap32.h z80.h
-	$(CC) $(CFLAGS) $(IPATHS) -o capriceRPI2 cap32.cpp menu.o crtc.o fdc.o psg.o tape.o z80.o autotype.o $(LIBS)
-#	mv ./capriceRPI2 ..
+capriceRPI: cap32.cpp menu.o autotype.o crtc.o fdc.o psg.o tape.o z80.o cap32.h z80.h autoboot.c vjoystick.c
+	$(CC) $(CFLAGS) $(IPATHS) -o capriceRPI cap32.cpp menu.o crtc.o fdc.o psg.o tape.o z80.o autotype.o $(LIBS)
 
-crtc.o: crtc.c videodraw/draw_16bpp.c cap32.h crtc.h z80.h
+crtc.o: crtc.c videodraw/draw_8bpp.c videodraw/draw_16bpp.c videodraw/draw_24bpp.c videodraw/draw_32bpp.c cap32.h crtc.h z80.h
 	$(CC) $(CFLAGS) -c crtc.c
 
 fdc.o: fdc.c cap32.h z80.h
@@ -49,5 +48,5 @@ autotype.o: autotype.c autotype.h
 	$(CC) $(CFLAGS) -c autotype.c
 
 clean:
-	rm *.o capriceRPI2
+	rm *.o capriceRPI
 	

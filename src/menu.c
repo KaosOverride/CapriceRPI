@@ -2909,6 +2909,7 @@ void set_transpa (SDL_Surface *source )
 
 unsigned int WhichPI()
 {
+#ifndef NOTPI
  FILE * filp;
  unsigned rev;
  char buf[512];
@@ -2934,6 +2935,10 @@ unsigned int WhichPI()
  	fclose(filp);
  }
  return rev;
+#else
+ return 200;
+#endif
+
 }
 
 
@@ -2947,6 +2952,7 @@ menu = load_image_include(menucpc_bmp, menucpc_bmp_size);// "gui/menucpc.bmp");
 	if (menu == NULL)
 		printf("Menu error: %s", SDL_GetError());
 
+#ifndef NOTPI
 if (WhichPI()>128)
         {
 	portada= load_image_include(portada_RPI2_bmp,portada_RPI2_bmp_size );//"gui/portada.bmp"); 
@@ -2954,13 +2960,17 @@ if (WhichPI()>128)
         {
 	portada= load_image_include(portada_RPI1_bmp,portada_RPI1_bmp_size );//"gui/portada.bmp"); 
         } 
+#else
+portada= load_image_include(portada_RPI_bmp,portada_RPI_bmp_size );//"gui/portada.bmp"); 
+#endif
+
 	if (portada == NULL)
 		printf("Menu error: %s", SDL_GetError());
-
 
 splash= load_image_include(portada_RPI_bmp,portada_RPI_bmp_size );//"gui/portada.bmp"); 
 	if (splash == NULL)
 		printf("Menu error: %s", SDL_GetError());
+
 montaje= load_image_include( back_bmp,back_bmp_size );//"gui/back.bmp"); //Dirty trick to gain a backbuffer equal to the background!!
 	if (montaje == NULL)
 		printf("Menu error: %s", SDL_GetError());

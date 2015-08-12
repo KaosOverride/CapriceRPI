@@ -4306,6 +4306,7 @@ have_TAP = false;
    CPC_even_frame=0;
    CPC_render_mode=0;
 
+
    if (WhichPI()>128)
 	{
 	CPC_max_vid_mode=3;
@@ -4315,6 +4316,7 @@ have_TAP = false;
 	CPC_max_vid_mode=1;
 	vid_index=0;
 	} 
+
   //vid_index=2;
    video_reconfig(vid_index);
    //video_set_style(); called from video_init()
