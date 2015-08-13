@@ -1,0 +1,50 @@
+
+CC      = g++
+ASM	= as
+
+GFLAGS = -Wall `sdl-config --cflags` -I/usr/local/include/SDL -L/opt/vc/lib -I/usr/local/include -L/usr/local/lib -DLINUX 
+ASMFLAGS =
+STATICLIBS = /usr/local/lib/libSDL_image.a /usr/local/lib/libSDL_ttf.a /usr/lib/arm-linux-gnueabihf/libSDLmain.a  /usr/lib/arm-linux-gnueabihf/libSDL.a   -lasound -lpthread -lpulse-simple -lpulse -lX11 -lXext -lXrandr -lbcm_host -ldirectfb -lcaca -lts
+
+
+#-mcpu=arm920t -mfpu=softfpa
+
+#ifdef RELEASE
+CFLAGS  = $(GFLAGS) -O2 -funroll-loops -ffast-math -fomit-frame-pointer -fno-strength-reduce -finline-functions -lm -s -ldl
+#else
+#CFLAGS  = $(GFLAGS) -gstabs+ -static
+#endif
+
+LIBS =  $(STATICLIBS) -lz  -lm -lfreetype -lpng12 -ljpeg 
+
+
+capriceRPI2: cap32.cpp menu.o autotype.o crtc.o fdc.o psg.o tape.o z80.o cap32.h z80.h
+	$(CC) $(CFLAGS) $(IPATHS) -o capriceRPI2 cap32.cpp menu.o crtc.o fdc.o psg.o tape.o z80.o autotype.o $(LIBS)
+	mv ./capriceRPI2 ../WIP/
+
+#flushcache.o:
+#	$(ASM) $(ASMFLAGS) -o flushcache.o flushcache.s
+
+crtc.o: crtc.c videodraw/draw_16bpp.c cap32.h crtc.h z80.h
+	$(CC) $(CFLAGS) -c crtc.c
+
+fdc.o: fdc.c cap32.h z80.h
+	$(CC) $(CFLAGS) -c fdc.c
+
+psg.o: psg.c cap32.h z80.h
+	$(CC) $(CFLAGS) -c psg.c
+
+tape.o: tape.c cap32.h tape.h z80.h
+	$(CC) $(CFLAGS) -c tape.c
+
+z80.o: z80.c z80.h cap32.h
+	$(CC) $(CFLAGS) -c z80.c
+
+menu.o: menu.c cap32.h tape.h z80.h
+	$(CC) $(CFLAGS) -c menu.c
+
+autotype.o: autotype.c autotype.h
+	$(CC) $(CFLAGS) -c autotype.c
+
+clean:
+	rm *.o CapriceGP2x 
