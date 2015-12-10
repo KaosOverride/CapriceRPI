@@ -15,7 +15,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
-#define VERSION_STRING " V1.1 (CaPriCe32 v4.1.0) Release"
+#define VERSION_STRING " V1.2 (CaPriCe32 v4.1.0) Release"
 #define AUTOR_STRING " KaosOverride - 2015"
 #define NOTE_STRING " Caprice for RPI!"
 

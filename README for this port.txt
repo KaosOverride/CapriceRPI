@@ -1,4 +1,4 @@
-Caprice RPI2 V1.1 - Pre-release - Adapted/ported by KaosOverride 2015
+Caprice RPI2 V1.2 - Pre-release - Adapted/ported by KaosOverride 2015
 (Caprice32 4.1.0 for Raspberry PI)
 
 Caprice32 - Amstrad CPC Emulator
@@ -16,6 +16,7 @@ Features:
 -Static link to Raspberry PI hardware scaler SDL library
 -Autoconfiguration when called from launchers and frontends (6128 default, 464 for tapes) with partial support for autorun commands for tape and disk
 -2 joystick support, and up to the unofficial Fire 3, redefinable as key for many games
+-ToTo's interface for joysticks 3 and 4 support.
 -Option menus and CPC virtual keyboard. Full use of the CPC from your joystick!!!
 -Supports DSK, CDT and SNA from menu and command line. Great for frontends and launchers
 -Autorun for DSKs and CDTs (tape loading x5)
@@ -95,7 +96,12 @@ ________________________________________________________________________________
 Release history
 ================
 
-V1.0 Release
+V1.2 Release
+====
+-ToTo's 4-player support
+-Autoboot fixes
+
+V1.1 Release
 ====
 -GUI's transparency fixes
 -Autoboot fixes

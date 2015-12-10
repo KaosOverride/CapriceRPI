@@ -295,8 +295,15 @@ int CPC_BootStartDisk (t_drive bootdisc)
 				{
 				runstring[in+4]=enterstring[0];
 				runstring[in+5]=enterstring[1];
-				runstring[in+7]='\0';
+				runstring[in+6]='\0';
 				break;
+				}
+			else if (in==11)
+				{
+				runstring[in+5]=enterstring[0];
+				runstring[in+6]=enterstring[1];
+				runstring[in+7]='\0';
+
 				}
 			}
 

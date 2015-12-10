@@ -26,6 +26,22 @@
 #define PC_JOY2_FIRE2		13
 #define PC_JOY2_FIRE3		14
 
+#define PC_JOY3_UP		15
+#define PC_JOY3_DOWN		16
+#define PC_JOY3_LEFT		17
+#define PC_JOY3_RIGHT		18
+#define PC_JOY3_FIRE1		19
+#define PC_JOY3_FIRE2		20
+#define PC_JOY3_FIRE3		21
+
+#define PC_JOY4_UP		22
+#define PC_JOY4_DOWN		23
+#define PC_JOY4_LEFT		24
+#define PC_JOY4_RIGHT		25
+#define PC_JOY4_FIRE1		26
+#define PC_JOY4_FIRE2		27
+#define PC_JOY4_FIRE3		28
+
 
 /*		//--------------------------------------------------------------------------------------
 		//                  Aqui empieza mi joy real -> joy virtual
