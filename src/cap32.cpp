@@ -245,7 +245,6 @@ extern int nopcion,vismenu; //menu.c
 // want to exit??
 int emulatorend = 0;
 
-#include "vjoystick.c"
 
 //Autotype engine
 
@@ -263,10 +262,13 @@ bool KeyboardScanned = false;
 
 SDL_Joystick* joystick;
 SDL_Joystick* joystick2;
+SDL_Joystick* joystick3;
+SDL_Joystick* joystick4;
 SDL_AudioSpec *audio_spec = NULL;
 SDL_Surface *video_surface = NULL;
 SDL_Surface *back_surface = NULL;
 SDL_Rect video_rect, back_rect,SDL_rect;
+
 
 int CPC_max_vid_mode=3;
 vid_mode videomodes[4]={
@@ -370,6 +372,7 @@ static double colours_green[32] = {
 };
 
 dword colour_table[32];
+dword colour_table_half[32];
 
 static byte CRTC_values[2][14] = {
    {0x3f, 0x28, 0x2e, 0x8e, 0x1f, 0x06, 0x19, 0x1b, 0x00, 0x07, 0x00, 0x00, 0x30, 0x00},
@@ -465,6 +468,9 @@ static byte keyboard_translation[320] = {
 
 #include "cap32defs.h"
 
+unsigned char ToToJoy3; 
+unsigned char ToToJoy4; 
+
 #define MAX_KBD_LAYOUTS 2
 #include "rom_mods.c"
 
@@ -485,12 +491,13 @@ extern int keyboard_pos,keyboard_show;
 
 int CPC_even_frame=0;
 int CPC_render_mode=0;
-int CPC_max_render_mode=2;
+int CPC_max_render_mode=3;
 int CPC_render_msg_delay=0;
-char CPC_render_mode_desc[3][15]={
+char CPC_render_mode_desc[4][15]={
  "PROGRESSIVE",
  " SCANLINES ",
- "INTERLACED"
+ "INTERLACED ",
+ " CRT EMUL  "
 };
 
 char chAppPath[_MAX_PATH + 1];
@@ -714,6 +721,25 @@ byte z80_IN_handler (reg_pair port)
       }
    }
 // ----------------------------------------------------------------------------
+
+/*   Joystick 3 & 4  ToTo's adapter
+	&F990
+	&F991
+*/
+
+
+   else if ((port.b.h == 0xf9) && (port.b.l == 0x90)) // JOY 3
+	{
+	ret_val=ToToJoy3;
+	}
+
+   else if ((port.b.h == 0xf9) && (port.b.l == 0x91)) // JOY 4
+	{
+	ret_val=ToToJoy4;
+	}
+
+// ----------------------------------------------------------------------------
+
    else if (!(port.b.h & 0x04)) { // external peripheral?
       if ((port.b.h == 0xfb) && (!(port.b.l & 0x80))) { // FDC?
          if (!(port.b.l & 0x01)) { // FDC status register?
@@ -935,6 +961,8 @@ void z80_OUT_handler (reg_pair port, byte val)
       }
    }
 // ----------------------------------------------------------------------------
+
+
    if ((port.b.h == 0xfa) && (!(port.b.l & 0x80))) { // floppy motor control?
       FDC.motor = val & 0x01;
       #ifdef DEBUG_FDC
@@ -2844,7 +2872,6 @@ void emulator_reset (bool bolMF2Reset)
    membank_read[0] = pbROMlo; // 'page in' lower ROM
    membank_read[3] = pbROMhi; // 'page in' upper ROM
 
-//virtual joystick by KaosOverride
 
 
 // Multiface 2
@@ -3286,6 +3313,7 @@ case 32:
 	         break;
 
 	case 2:  //INTERLACED
+	case 3:  //INTERLACED
 
                mode_handler[0] = draw32bpp_mode0_scanplus;
                mode_handler[1] = draw32bpp_mode1_scanplus;
@@ -3333,6 +3361,7 @@ case 24:
 	         break;
 
 	case 2:  //INTERLACED
+	case 3:  //INTERLACED
 
                mode_handler[0] = draw24bpp_mode0_scanplus;
                mode_handler[1] = draw24bpp_mode1_scanplus;
@@ -3389,6 +3418,15 @@ case 15:
                mode_handler[2] = draw16bpp_mode2_scanplus;
                mode_handler[3] = draw16bpp_mode0_scanplus;
                border_handler = draw16bpp_border_scanplus;
+	         break;
+
+	case 3:  //CRT EMUL
+
+               mode_handler[0] = draw16bpp_mode0_CRT;
+               mode_handler[1] = draw16bpp_mode1_CRT;
+               mode_handler[2] = draw16bpp_mode2_CRT;
+               mode_handler[3] = draw16bpp_mode0_CRT;
+               border_handler = draw16bpp_border_CRT;
 	         break;
 
 
@@ -3562,9 +3600,11 @@ int video_set_palette (void)
                   blue = 31;
                }
                dword colour = blue | (green << 5) | (red << 11);
+               dword colour_half = blue/2 | (green/2 << 5) | (red/2 << 11);
         //fprintf(stdout, "Pen: %2d R-%5d G-%5d B-%5d   TOTAL-%5d\n", n , red , green , blue, colour_table[n] );
  
                colour_table[n] = colour | (colour << 16);
+               colour_table_half[n] = colour_half | (colour_half << 16);
            }
          } else {
             int n;
@@ -3597,7 +3637,9 @@ int video_set_palette (void)
                   blue = 31;
                }
                dword colour = blue | (green << 5) | (red << 10);
+               dword colour_half = blue/2 | (green/2 << 5) | (red/2 << 10);
                colour_table[n] = colour | (colour << 16);
+               colour_table_half[n] = colour_half | (colour_half << 16);
             }
          } else {
             int n;
@@ -4159,6 +4201,10 @@ void doCleanUp (void)
 
    SDL_JoystickClose(joystick2);  //libera joysticks
 
+   SDL_JoystickClose(joystick3);  //libera joysticks
+
+   SDL_JoystickClose(joystick4);  //libera joysticks
+
    #ifdef DEBUG
    fclose(pfoDebug);
    #endif
@@ -4200,6 +4246,39 @@ EXTERN_C void  cpc_key_unpress (int cpc_keypress)
         		}
 }
 
+#include "vjoystick.c"
+
+/////////////////////////////////////////////SDL JOY TEST
+
+void SDL_JoystickReload(int debug)
+{
+   int i;
+
+    SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+    SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+    if (debug)
+	{
+    	if (!SDL_NumJoysticks())
+    	printf("No joysticks were found.\n\n" );
+
+    	if (SDL_NumJoysticks()>0)
+	{
+		printf("Joysticks ID names:\n");
+    		for( i=0; i < SDL_NumJoysticks(); i++ ) 
+    		{
+        		printf("  %d- %s\n",i, SDL_JoystickName(i));
+    		}
+	}
+	}
+   joystick = SDL_JoystickOpen(0);  // Metemos joystick una vez inicializado el sistema
+   joystick2 = SDL_JoystickOpen(1);  // Metemos joystick una vez inicializado el sistema
+   joystick3 = SDL_JoystickOpen(2);  // Metemos joystick una vez inicializado el sistema
+   joystick4 = SDL_JoystickOpen(3);  // Metemos joystick una vez inicializado el sistema
+
+}
+////////////////////////////////////////////////////////////////////////
+
+
   
 /*
 #include <unistd.h>
@@ -4216,7 +4295,7 @@ int main (int argc, char **argv)
    int iExitCondition;
    bool bolDone;
    SDL_Event event;
-   
+
    
 #ifndef LINUX
 freopen ("CON", "w", stdout );
@@ -4229,8 +4308,8 @@ have_SNA = false;
 have_TAP = false;
 
 
-   int frameskiper = 0;
    int i;
+   int frameskiper = 0;
    bool argvsound = true;
    bool argvpausescreen = false;
    bool argvsplash = true;
@@ -4265,23 +4344,7 @@ have_TAP = false;
 	exit(-1);
     }
 
-/////////////////////////////////////////////SDL JOY TEST
-
-    	if (!SDL_NumJoysticks())
-    	printf("No joysticks were found.\n\n" );
-
-    	if (SDL_NumJoysticks()>0)
-	{
-		printf("Joysticks ID names:\n");
-    		for( i=0; i < SDL_NumJoysticks(); i++ ) 
-    		{
-        		printf("    %s\n", SDL_JoystickName(i));
-    		}
-	}
-////////////////////////////////////////////////////////////////////////
-
-   joystick = SDL_JoystickOpen(0);  // Metemos joystick una vez inicializado el sistema
-   joystick2 = SDL_JoystickOpen(1);  // Metemos joystick una vez inicializado el sistema
+	 SDL_JoystickReload(1);
 
   
 //   atexit(doCleanUp); // install the clean up routine
@@ -4358,8 +4421,9 @@ newrom_load("sym-romD.rom","./rom",18);
 
  TESTING*/
 
-	pcjoy_reset();  //Poner a cero el joystick virtual
-
+	pcjoy_init();  //Poner a cero el joystick virtual
+	ToToJoy3=0;
+	ToToJoy4=0;
   #ifdef DEBUG
    pfoDebug = fopen("./debug.txt", "wt");
    #endif
@@ -4486,6 +4550,7 @@ if (keyboard_show)
 }
 else
 {
+   int which_joy=0;
    int menu_eval_action=0;
    switch (event.type) 
    {
@@ -4499,26 +4564,27 @@ else
 	case SDL_JOYBUTTONUP:
 	case SDL_JOYBUTTONDOWN:
 
+		if (event.type == SDL_JOYAXISMOTION )
+			which_joy=event.jaxis.which;
+			else
+			which_joy=event.jbutton.which;
+
+
+
 		if (vismenu)   menu_eval_action=1;
 
 		else
 		{
                   pcjoy_update (event);
-                  if ( pcjoy_pressed (PC_JOY1_UP) ) {cpc_key_press (0x90); } else {cpc_key_unpress (0x90);};
-                  if ( pcjoy_pressed (PC_JOY1_DOWN) ) {cpc_key_press (0x91); } else {cpc_key_unpress (0x91);};
-                  if ( pcjoy_pressed (PC_JOY1_LEFT) ) {cpc_key_press (0x92); } else {cpc_key_unpress (0x92);};
-                  if ( pcjoy_pressed (PC_JOY1_RIGHT) ) {cpc_key_press (0x93); } else {cpc_key_unpress (0x93);};
-                  if ( pcjoy_pressed (PC_JOY1_FIRE1) ) {cpc_key_press (0x94); } else {cpc_key_unpress (0x94);};
-                  if ( pcjoy_pressed (PC_JOY1_FIRE2) ) {cpc_key_press (0x95); } else {cpc_key_unpress (0x95);};
-                  if ( pcjoy_pressed (PC_JOY1_FIRE3) ) {cpc_key_press (0x96); } else {cpc_key_unpress (0x96);};
 
-                  if ( pcjoy_pressed (PC_JOY2_UP) ) {cpc_key_press (0x60); } else {cpc_key_unpress (0x60);};
-                  if ( pcjoy_pressed (PC_JOY2_DOWN) ) {cpc_key_press (0x61); } else {cpc_key_unpress (0x61);};
-                  if ( pcjoy_pressed (PC_JOY2_LEFT) ) {cpc_key_press (0x62); } else {cpc_key_unpress (0x62);};
-                  if ( pcjoy_pressed (PC_JOY2_RIGHT) ) {cpc_key_press (0x63); } else {cpc_key_unpress (0x63);};
-                  if ( pcjoy_pressed (PC_JOY2_FIRE1) ) {cpc_key_press (0x64); } else {cpc_key_unpress (0x64);};
-                  if ( pcjoy_pressed (PC_JOY2_FIRE2) ) {cpc_key_press (0x65); } else {cpc_key_unpress (0x65);};
-                  if ( pcjoy_pressed (PC_JOY2_FIRE3) ) {cpc_key_press (0x66); } else {cpc_key_unpress (0x66);};
+		JoyFuncs[which_joy].Up (pcjoy_pressed (PC_JOY_UP,which_joy));
+		JoyFuncs[which_joy].Down (pcjoy_pressed (PC_JOY_DOWN,which_joy));
+		JoyFuncs[which_joy].Left (pcjoy_pressed (PC_JOY_LEFT,which_joy));
+		JoyFuncs[which_joy].Right (pcjoy_pressed (PC_JOY_RIGHT,which_joy));
+		JoyFuncs[which_joy].Fire1 (pcjoy_pressed (PC_JOY_FIRE1,which_joy));
+		JoyFuncs[which_joy].Fire2 (pcjoy_pressed (PC_JOY_FIRE2,which_joy));
+		JoyFuncs[which_joy].Fire3 (pcjoy_pressed (PC_JOY_FIRE3,which_joy));
+
 
 		  if (event.type == SDL_JOYBUTTONDOWN )
 			{

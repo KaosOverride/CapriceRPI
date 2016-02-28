@@ -43,6 +43,7 @@ extern t_CRTC CRTC;
 extern t_GateArray GateArray;
 extern t_VDU VDU;
 extern t_z80regs z80;
+extern dword colour_table_half[32];
 
 extern byte *pbRAM;
 extern byte mode0_table[512], mode1_table[1024];

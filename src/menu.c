@@ -27,6 +27,12 @@ Menu System for CapriceGP2x by KaosOverride based on NK's file manager GUI
 
 
 //externals
+
+extern int CPC_Joystate[8];
+extern char CPC_Joynames[8][12];
+extern int CPC_Joys [4];
+extern void pcjoy_assign(int joy, int mode);
+
 extern SDL_Surface *video_surface,*back_surface;
 
 extern t_CPC CPC;
@@ -648,7 +654,7 @@ int eventloop(int ext) {
 				//move_dir = 0;
 				pcjoy_update (event);
 
-				if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
+				if  (pcjoy_pressed (PC_JOY_UP,event.jaxis.which) ) 
 					{		//Action UP
 					cur_pos--;
 					redraw=1;
@@ -657,7 +663,7 @@ int eventloop(int ext) {
 					break;
 					};
 
-				if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
+				if  (pcjoy_pressed (PC_JOY_DOWN,event.jaxis.which)) 
 					{		//Action DOWN
 					cur_pos++;
 					redraw=1;			     
@@ -666,14 +672,14 @@ int eventloop(int ext) {
 					break;	
 					};
 
-				if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
+				if  (pcjoy_pressed (PC_JOY_LEFT,event.jaxis.which))
 					{		//Action LEFT
 					//move_dir = 0;
 					if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);//filter
 					break;
 					};
 
-				if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
+				if  (pcjoy_pressed (PC_JOY_RIGHT,event.jaxis.which)) 
 					{		//Action RIGHT
 					if(files[cur_pos].isdir){
 						strcat(open_path, files[cur_pos].name);
@@ -934,6 +940,7 @@ enum {
 	MENU_OPT,
 	MENU_SET,
 	MENU_SCR,
+	MENU_JOY,
 	MENU_UNKNOWN  
 };
 
@@ -970,8 +977,14 @@ textmenu text_menuscreen[8];
 int option_menuscreen[8] ;
 
 
+int opt_menujoy=1;
+static int maxopt_menujoy=5; //Max items in menu
+textmenu text_menujoy[8];
+int option_menujoy[8] ;
+
+
 int opt_settingsconfig=1;
-static int maxopt_settingsconfig=5; //Max items in menu
+static int maxopt_settingsconfig=6; //Max items in menu
 textmenu text_settingsconfig[8];
 unsigned int option_settingsconfig[8] ;
 
@@ -1207,17 +1220,23 @@ if (!savefail)
 		//SDL EVALUATE
 		while(SDL_PollEvent(&qevent)) 
 		 {
+			int which_joy;
 			switch(qevent.type)
 			 {
 			 case SDL_JOYAXISMOTION:  // Handle Joystick Motion 
 			 case SDL_JOYBUTTONUP:
 			 case SDL_JOYBUTTONDOWN:
                   		pcjoy_update (qevent);
-				if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
+				if (qevent.type==SDL_JOYAXISMOTION)
+					which_joy=qevent.jaxis.which;
+					else
+					which_joy=qevent.jbutton.which;
+
+				if (pcjoy_pressed (PC_JOY_LEFT,which_joy))
 				 {
 					qopt=0;
 				 }
-				if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
+				if (pcjoy_pressed (PC_JOY_RIGHT, which_joy))
 				 {
 					qopt=1;
 				 }
@@ -1870,9 +1889,58 @@ return flag;
 
 }
 
+//EVAL JOYSTICK
+
+extern void SDL_JoystickReload(int debug);
+
+int menu_eval_joystick (int cur_menupos){
+    
+                   int flag=0;     
+
+                 switch (cur_menupos)
+                 {
+                  case 0:
+                  case 1:
+                  case 2:
+                  case 3:  //4 render
+			//cur_menupos=actual joystick
+			{
+			int jmodeind=CPC_Joys[cur_menupos];
+			int oldjmode=jmodeind;
+			char jdone=0;
+			while (!jdone)
+			{
+				if (CPC_Joystate[jmodeind])
+				{
+				jmodeind++;
+				if (jmodeind >7) jmodeind=0;
+				}
+				else
+				jdone=1;
+			}
+			CPC_Joystate[oldjmode]=0;
+			CPC_Joys[cur_menupos]=jmodeind;
+			CPC_Joystate[jmodeind]=1;
+			pcjoy_assign(cur_menupos,CPC_Joys[cur_menupos]);
+
+                       }
+			break;
+
+                  case 4:  //5 back
+			SDL_JoystickReload(0);
+                        //flag =1;
+                       break;
+                 };
+
+return flag;
+
+}
+
+
 //EVAL SETTINGS
 
 int load_menuscreen();   // predefinition
+int load_menujoy();   // predefinition
 
 int menu_eval_settings (int cur_settingspos){
     
@@ -1902,8 +1970,13 @@ int menu_eval_settings (int cur_settingspos){
 
                   case 3:  //4 Screen setup
 			load_menuscreen();
+			maxopt_menucurrent=maxopt_settingsconfig;
 			break;
-                  case 4:  //5 reset
+                  case 4:  //5 joystick
+			load_menujoy();
+			maxopt_menucurrent=maxopt_settingsconfig;
+			break;
+                  case 5:  //6 reset
                            needreset=1;
                            flag =1;
 			   break;
@@ -1929,7 +2002,7 @@ int eventloop_menu(int menu_type) {
 //	move_dir = 0;
 
 	while(SDL_PollEvent(&event)) 
-	{
+	{int which_joy;
 	switch(event.type) 
 		{
 
@@ -1940,25 +2013,31 @@ int eventloop_menu(int menu_type) {
 		case SDL_JOYBUTTONDOWN:
 				//move_dir = 0;
 				pcjoy_update (event);
-				if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
+				if (event.type==SDL_JOYAXISMOTION)
+					which_joy=event.jaxis.which;
+					else
+					which_joy=event.jbutton.which;
+
+
+				if (pcjoy_pressed (PC_JOY_UP, which_joy))
 				{		//Action UP
 					cur_menupos--;
 					redraw=1;
 					//move_dir = -1;
 					break;
 				};
-				if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
+				if (pcjoy_pressed (PC_JOY_DOWN, which_joy))
 				{		//Action DOWN
 					cur_menupos++;
 					redraw=1;			     
 					//move_dir = 1;
 					break;
 				};
-                  		if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
+                  		if (pcjoy_pressed (PC_JOY_LEFT,which_joy))
 				{		//Action LEFT
 					flag = 1;
 				};
-				if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
+				if (pcjoy_pressed (PC_JOY_RIGHT,which_joy))
 				{		//Action RIGHT
 					redraw=1;
 					make_option=1;
@@ -2054,11 +2133,11 @@ int eventloop_menu(int menu_type) {
                                   flag=menu_eval_screen(cur_menupos);
                                   redraw=1;
                                   break;
-/*                        case MENU_OPT:
-                                  flag=menu_eval_config(cur_menupos);
+                        case MENU_JOY:
+                                  flag=menu_eval_joystick(cur_menupos);
                                   redraw=1;
                                   break;
-*/
+
                         case MENU_SET:
                                   flag=menu_eval_settings(cur_menupos);
                                   redraw=1;
@@ -2529,6 +2608,127 @@ int flag;
 
 
 
+//MENU JOYSTICKS
+
+enum {
+	JOY_JA,
+	JOY_JB,
+	JOY_JG,
+	JOY_JO,
+	JOY_T3,
+	JOY_T4,
+	JOY_OPQA,
+	JOY_CURSOR
+};
+
+
+void draw_menujoy(void) {
+	int y = 50;
+	int i;
+//	SDL_Rect dstrect;
+//	dstrect.x = 20;
+	int cr,cg,cb;
+	SDL_BlitSurface(fondo, NULL, montaje, NULL);
+	   SDL_UpdateRect(montaje, 0,0,0,0);
+	displaytext( 105, 25 ,"JOYSTICK SETUP", getfontcolor(250, 250, 0));
+	opt_menujoy=1;
+	for(i=draw_menupos;(opt_menujoy<=maxopt_menujoy) && (y < 250);i++, y+=25){
+		int color_menu =0;
+        if(i == cur_menupos) 
+		{
+		cr=250;
+		cg=0;
+		cb=0;
+		} else
+		{ 
+	        if((SDL_NumJoysticks()<=i) && (i<4))
+			{
+			cr=128;
+			cg=128;
+			cb=128;
+			} else
+			{
+			cr=250;
+			cg=250;
+			cb=0;
+			};
+		};
+        displaytext( 50, y ,text_menujoy[opt_menujoy].text, getfontcolor(cr, cg, cb)); 
+//        char tmpstr[6];
+//        sprintf(tmpstr,"%d",option_menujoy[opt_menujoy-1]);
+        switch (opt_menujoy)
+              {
+                 case 1:
+                 case 2:
+                 case 3:
+                 case 4:
+//		        if((SDL_NumJoysticks()<=i) && (i<4))
+//                        displaytext( 150, y ,"OFF", getfontcolor(cr, cg, cb)); 
+//                        else
+			displaytext( 150, y ,CPC_Joynames[CPC_Joys[opt_menujoy-1]], getfontcolor(cr, cg, cb)); 
+			break;
+                 default:
+                         break;   
+
+              }
+
+
+//		dstrect.y = y;
+
+		opt_menujoy++;
+	}   SDL_UpdateRect(montaje, 0,0,0,0);
+}
+
+
+
+int load_menujoy( )
+{
+
+int indx;
+int flag;
+// char *path;
+	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 
+  	SDL_UpdateRect(montaje, 0,0,0,0);
+    	needreset=0;
+
+    strcpy(text_menujoy[1].text,"J1");
+    strcpy(text_menujoy[2].text,"J2");
+    strcpy(text_menujoy[3].text,"J3");
+    strcpy(text_menujoy[4].text,"J4");
+    strcpy(text_menujoy[5].text,"Reload Joysticks");
+    strcpy(text_menujoy[6].text,"------------");
+
+    maxopt_menucurrent=maxopt_menujoy;
+    
+	cur_menupos = 4;
+	draw_menupos = 0;
+	redraw = 1;
+	
+	while((flag = eventloop_menu(MENU_JOY)) == 0) {
+		if(redraw) {
+			draw_menujoy();
+			menu_blit();
+			//SDL_Delay (1000);
+			redraw = 0;
+		}
+	}
+
+
+	if(flag == 1)   // IF flag is not 1, then abort settings change
+	{
+/*		if (needreset==1){
+                  emulator_reset(false);
+		}
+*/
+		return 1;
+	}//flag=1
+
+
+	return 0;
+}
+
+
+
 //___________________________________________
 // SETTINGS CONFIG
 
@@ -2614,9 +2814,10 @@ SDL_BlitSurface( fondo, NULL , montaje, NULL );
     strcpy(text_settingsconfig[1].text,"CPC Model");
     strcpy(text_settingsconfig[2].text,"Memory");
     strcpy(text_settingsconfig[3].text,"Audio");
-    strcpy(text_settingsconfig[4].text,"Screen setup -->");
-    strcpy(text_settingsconfig[5].text,"Reset CPC");
-    strcpy(text_settingsconfig[6].text,"----------------");
+    strcpy(text_settingsconfig[4].text,"Screen setup   ->");
+    strcpy(text_settingsconfig[5].text,"Joystick setup ->");
+    strcpy(text_settingsconfig[6].text,"Reset CPC");
+//    strcpy(text_settingsconfig[6].text,"----------------");
 
 
     maxopt_menucurrent=maxopt_settingsconfig;
@@ -2744,51 +2945,52 @@ void icomenu_vis (bool pausescreen)
 
 void icomenu_eval (SDL_Event icoevent)
 {
-     int sele=0;
-     switch (icoevent.type)
-            {
+	int sele=0;
+	int which_joy;
+
+	switch (icoevent.type)
+	{
 							//////////////
 
-    case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 		case SDL_JOYBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
+			if (icoevent.type==SDL_JOYAXISMOTION)
+			which_joy=icoevent.jaxis.which;
+			else
+			which_joy=icoevent.jbutton.which;
 
-                  pcjoy_update (icoevent);
-                  if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
-												{		//Action LEFT
-                             sele=ICOMENU_LEFT;
+			pcjoy_update (icoevent);
+			if  (pcjoy_pressed (PC_JOY_LEFT,which_joy))
+				{		//Action LEFT
+				sele=ICOMENU_LEFT;
+				break;
+				};
+			if (pcjoy_pressed (PC_JOY_RIGHT,which_joy))
+				{		//Action RIGHT
+				sele=ICOMENU_RIGHT;
+				break;
+				};
 
-												};
-									if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
-												{		//Action RIGHT
-                             sele=ICOMENU_RIGHT;
-
-													break;
-
-												};
-					
-							if (icoevent.type == SDL_JOYBUTTONDOWN )		
-							{		
-							 switch (icoevent.jbutton.button)  	
-									{	 
-									case SDL_JoyFire1:
-											//Accion seleccionar
-                             sele=ICOMENU_RUN;
-
-											break;
-									case SDL_JoyFire4:
-											// Accion salir ;
-                             sele=ICOMENU_EXIT;
-											break;
-									}
-							}								
-         break;
+	if (icoevent.type == SDL_JOYBUTTONDOWN )
+	{
+		switch (icoevent.jbutton.button)  	
+		{
+			case SDL_JoyFire1:
+			//Accion seleccionar
+			sele=ICOMENU_RUN;
+			break;
+		case SDL_JoyFire4:
+			// Accion salir ;
+			sele=ICOMENU_EXIT;
+			break;
+		}
+	}
+	break;
 
 ///////////////
 
 
-							
-							
             case SDL_KEYUP:
             case SDL_KEYDOWN:
                  switch ((int)icoevent.key.keysym.sym)
@@ -2805,10 +3007,9 @@ void icomenu_eval (SDL_Event icoevent)
                         case SDLK_RETURN:
                              sele=ICOMENU_RUN;
                              break;
-                        }                                                 
+                        }
                  break;
-            }                        
-                                                 
+            }
             switch (sele)
             {
                    case ICOMENU_EXIT:
@@ -2858,10 +3059,9 @@ void icomenu_eval (SDL_Event icoevent)
                                           default:
                                                   break;
                                           }
-                     
-                     }  
+                     }
 
-                     }               
+		}
 }
 
 
@@ -3220,7 +3420,7 @@ void eval_keyboard(SDL_Event kevent)
 {
 
 int vkey_move=VKEY_NONE;
-
+int which_joy;
    switch (kevent.type) {
 
   
@@ -3228,31 +3428,35 @@ int vkey_move=VKEY_NONE;
 
 //////JOY START
 
-    case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 		case SDL_JOYBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
 
 		pcjoy_update (kevent);
+		if (kevent.type==SDL_JOYAXISMOTION)
+			which_joy=kevent.jaxis.which;
+			else
+			which_joy=kevent.jbutton.which;
 
-		if ( (pcjoy_pressed (PC_JOY1_UP)) || (pcjoy_pressed (PC_JOY2_UP))) 
+		if (pcjoy_pressed (PC_JOY_UP,which_joy))
 			{		//Action UP
                         if (!(vkey_pressed)) vkey_move=VKEY_UP ;
 
 			break;
 			};
-		if ( (pcjoy_pressed (PC_JOY1_DOWN)) || (pcjoy_pressed (PC_JOY2_DOWN))) 
+		if (pcjoy_pressed (PC_JOY_DOWN,which_joy))
 			{		//Action DOWN
                         if (!(vkey_pressed)) vkey_move=VKEY_DOWN ;
 
 			break;
 			};
-		if ( (pcjoy_pressed (PC_JOY1_LEFT)) || (pcjoy_pressed (PC_JOY2_LEFT))) 
+		if (pcjoy_pressed (PC_JOY_LEFT,which_joy))
 			{		//Action LEFT
                         if (!(vkey_pressed)) vkey_move=VKEY_LEFT ;
 
 			break;
 			};
-		if ( (pcjoy_pressed (PC_JOY1_RIGHT)) || (pcjoy_pressed (PC_JOY2_RIGHT))) 
+		if (pcjoy_pressed (PC_JOY_RIGHT,which_joy))
 			{		//Action RIGHT
                         if (!(vkey_pressed)) vkey_move=VKEY_RIGHT ;
 

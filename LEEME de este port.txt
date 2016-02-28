@@ -15,8 +15,9 @@ Caracteristicas:
 -Ejecutable monolitico portable, sin dependencias de ficheros externos (ROMs de sistema, skins, etc) 
 -Lincaje estatico de libreria SDL compatible con escalado hardware de Raspberry PI
 -Autoconfigurable para frontends y lanzadores (6128 por defecto, 464 para cintas) con soporte parcial de autoejecucion de comandos de inicio de cintas o discos.
--Soporte para 2 joysticks, y hasta del no oficial Fire 3, redefinible como tecla por muchos juegos.
--Soporte del interfaz de ToTo para joysticks 3 y 4 
+-Soporte para los 2 joysticks standar, y hasta del no oficial Fire 3, redefinible como tecla por muchos juegos.
+-Soporte del interfaz de ToTo para joysticks 3 y 4
+-Soporte de asignacion libre a los 4 mandos USB de los Joysticks del CPC, incluso ciertas combinaciones de teclado. 
 -Menus navegables y teclado CPC virtual. Usa completamente el CPC desde joystick!!!
 -Soporta DSK, CDT y SNA desde menus y linea de comandos. Ideal para frontends y launchers
 -Modos graficos Low-res para RPI1
@@ -95,6 +96,14 @@ ________________________________________________________________________________
 
 Historial de versiones
 ======================
+
+V1.3 Release
+====
+-Soporte flexible de asignacion de Joysticks
+ Asignacion a cualquiera de los 4 mandos USB de los
+ Joysticks 1 y 2 del CPC, 3 y 4 del interfaz MultiPlay
+ de ToTo, y diversas configuraciones de teclas para joysticks.
+-Modo experimental de emulacion de pantalla CRT
 
 V1.2 Release
 ====

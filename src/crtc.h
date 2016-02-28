@@ -60,7 +60,10 @@ void draw16bpp_mode0_scanplus(dword addr);
 void draw16bpp_mode1_scanplus(dword addr);
 void draw16bpp_mode2_scanplus(dword addr);
 
-
+void draw16bpp_border_CRT(void);
+void draw16bpp_mode0_CRT(dword addr);
+void draw16bpp_mode1_CRT(dword addr);
+void draw16bpp_mode2_CRT(dword addr);
 
 void draw24bpp_border(void);
 void draw24bpp_mode0(dword addr);
