@@ -65,6 +65,11 @@ void draw16bpp_mode0_CRT(dword addr);
 void draw16bpp_mode1_CRT(dword addr);
 void draw16bpp_mode2_CRT(dword addr);
 
+void draw16bpp_border_CRTI(void);
+void draw16bpp_mode0_CRTI(dword addr);
+void draw16bpp_mode1_CRTI(dword addr);
+void draw16bpp_mode2_CRTI(dword addr);
+
 void draw24bpp_border(void);
 void draw24bpp_mode0(dword addr);
 void draw24bpp_mode1(dword addr);

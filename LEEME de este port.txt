@@ -97,6 +97,13 @@ ________________________________________________________________________________
 Historial de versiones
 ======================
 
+V1.3a Fix Release
+====
+-Los joysticks analogicos ya no deberian dar problemas al
+ navegar en los menues.
+-Reescrito mucho codigo de los menues referente a joysticks
+ y teclado para facilitar arreglos futuros.
+
 V1.3 Release
 ====
 -Soporte flexible de asignacion de Joysticks

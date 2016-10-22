@@ -297,6 +297,8 @@ void draw16bpp_mode2_double(dword addr)
    CPC.scr_offs += 8; // update PC screen buffer address
 }
 
+//Interlaced
+
 void draw16bpp_border_scanplus(void)
 {
    int colour;
@@ -456,6 +458,8 @@ void draw16bpp_mode2_scanplus(dword addr)
    CPC.scr_offs += 8; // update PC screen buffer address
 }
 
+
+
 void draw16bpp_border_half(void)
 {
    int colour;
@@ -553,6 +557,170 @@ void draw16bpp_mode2_half(dword addr)
 
 
 //Experimental CRT Emulation
+//VERY MUTANT CODE FROM VERSION TO VERSION.
+
+
+void draw16bpp_border_CRTI(void)
+{
+   int colour;
+   register dword *mem_ptr;
+   register dword next_line;
+
+   colour = GateArray.palette[16];
+   mem_ptr = CPC.scr_base + CPC.scr_offs; // PC screen buffer address
+   next_line = CPC_even_frame * CPC.scr_bps;
+  // *mem_ptr =
+   *(mem_ptr+next_line) = colour; // write one pixel of border colour
+  // *(mem_ptr+1) =
+   *(mem_ptr+next_line+1) = colour;
+  // *(mem_ptr+2) =
+   *(mem_ptr+next_line+2) = colour;
+  // *(mem_ptr+3) =
+   *(mem_ptr+next_line+3) = colour;
+  // *(mem_ptr+4) =
+   *(mem_ptr+next_line+4) = colour;
+  // *(mem_ptr+5) =
+   *(mem_ptr+next_line+5) = colour;
+  // *(mem_ptr+6) =
+   *(mem_ptr+next_line+6) = colour;
+  // *(mem_ptr+7) =
+   *(mem_ptr+next_line+7) = colour;
+   CPC.scr_offs += 8; // update PC screen buffer address
+}
+
+
+
+void draw16bpp_mode0_CRTI(dword addr)
+{
+   byte idx;
+   register dword *mem_ptr;
+   register dword next_line;
+   dword val;
+
+   mem_ptr = CPC.scr_base + CPC.scr_offs; // PC screen buffer address
+   next_line = CPC_even_frame * CPC.scr_bps;
+   idx = *(pbRAM + addr); // grab first CPC screen memory byte
+   val = GateArray.palette[mode0_table[(idx*2)]];
+//   *mem_ptr =
+   *(mem_ptr+next_line) = val; // write one pixels
+//   *(mem_ptr+1) =
+   *(mem_ptr+next_line+1) = val;
+   val = GateArray.palette[mode0_table[(idx*2)+1]];
+//   *(mem_ptr+2) =
+   *(mem_ptr+next_line+2) = val;
+//   *(mem_ptr+3) =
+   *(mem_ptr+next_line+3) = val;
+
+   idx = *(pbRAM + ((addr+1)&0xffff)); // grab second CPC screen memory byte
+   val = GateArray.palette[mode0_table[(idx*2)]];
+//   *(mem_ptr+4) =
+   *(mem_ptr+next_line+4) = val;
+//   *(mem_ptr+5) =
+   *(mem_ptr+next_line+5) = val;
+   val = GateArray.palette[mode0_table[(idx*2)+1]];
+//   *(mem_ptr+6) =
+   *(mem_ptr+next_line+6) = val;
+//   *(mem_ptr+7) =
+   *(mem_ptr+next_line+7) = val;
+   CPC.scr_offs += 8; // update PC screen buffer address
+}
+
+
+
+void draw16bpp_mode1_CRTI(dword addr)
+{
+   byte idx;
+   register dword *mem_ptr;
+   register dword next_line;
+   dword val;
+
+   mem_ptr = CPC.scr_base + CPC.scr_offs; // PC screen buffer address
+   next_line = CPC_even_frame * CPC.scr_bps;
+   idx = *(pbRAM + addr); // grab first CPC screen memory byte
+   val = GateArray.palette[mode1_table[(idx*4)]];
+  // *mem_ptr =
+   *(mem_ptr+next_line) = val; // write one pixels
+   val = GateArray.palette[mode1_table[(idx*4)+1]];
+  // *(mem_ptr+1) =
+   *(mem_ptr+next_line+1) = val;
+   val = GateArray.palette[mode1_table[(idx*4)+2]];
+  // *(mem_ptr+2) =
+   *(mem_ptr+next_line+2) = val;
+   val = GateArray.palette[mode1_table[(idx*4)+3]];
+  // *(mem_ptr+3) =
+   *(mem_ptr+next_line+3) = val;
+
+   idx = *(pbRAM + ((addr+1)&0xffff)); // grab second CPC screen memory byte
+   val = GateArray.palette[mode1_table[(idx*4)]];
+  // *(mem_ptr+4) =
+   *(mem_ptr+next_line+4) = val;
+   val = GateArray.palette[mode1_table[(idx*4)+1]];
+  // *(mem_ptr+5) =
+   *(mem_ptr+next_line+5) = val;
+   val = GateArray.palette[mode1_table[(idx*4)+2]];
+  // *(mem_ptr+6) =
+   *(mem_ptr+next_line+6) = val;
+   val = GateArray.palette[mode1_table[(idx*4)+3]];
+  // *(mem_ptr+7) =
+   *(mem_ptr+next_line+7) = val;
+   CPC.scr_offs += 8; // update PC screen buffer address
+}
+
+
+
+void draw16bpp_mode2_CRTI(dword addr)
+{
+   byte pat;
+   register dword *mem_ptr;
+   register dword next_line;
+   dword pen_on, pen_off;
+   reg_pair val;
+
+   mem_ptr = CPC.scr_base + CPC.scr_offs; // PC screen buffer address
+   next_line = CPC_even_frame*CPC.scr_bps;
+   pen_on = GateArray.palette[1];
+   pen_off = GateArray.palette[0];
+
+   pat = *(pbRAM + addr); // grab first CPC screen memory byte
+   val.w.l = (pat & 0x80) ? pen_on : pen_off;
+   val.w.h = (pat & 0x40) ? pen_on : pen_off;
+  // *mem_ptr =
+   *(mem_ptr+next_line) = val.d; // write four pixels
+   val.w.l = (pat & 0x20) ? pen_on : pen_off;
+   val.w.h = (pat & 0x10) ? pen_on : pen_off;
+  // *(mem_ptr+1) =
+   *(mem_ptr+next_line+1) = val.d;
+   val.w.l = (pat & 0x08) ? pen_on : pen_off;
+   val.w.h = (pat & 0x04) ? pen_on : pen_off;
+  // *(mem_ptr+2) =
+   *(mem_ptr+next_line+2) = val.d;
+   val.w.l = (pat & 0x02) ? pen_on : pen_off;
+   val.w.h = (pat & 0x01) ? pen_on : pen_off;
+  // *(mem_ptr+3) =
+   *(mem_ptr+next_line+3) = val.d;
+
+   pat = *(pbRAM + ((addr+1)&0xffff)); // grab second CPC screen memory byte
+   val.w.l = (pat & 0x80) ? pen_on : pen_off;
+   val.w.h = (pat & 0x40) ? pen_on : pen_off;
+  // *(mem_ptr+4) =
+   *(mem_ptr+next_line+4) = val.d;
+   val.w.l = (pat & 0x20) ? pen_on : pen_off;
+   val.w.h = (pat & 0x10) ? pen_on : pen_off;
+  // *(mem_ptr+5) =
+   *(mem_ptr+next_line+5) = val.d;
+   val.w.l = (pat & 0x08) ? pen_on : pen_off;
+   val.w.h = (pat & 0x04) ? pen_on : pen_off;
+  // *(mem_ptr+6) =
+   *(mem_ptr+next_line+6) = val.d;
+   val.w.l = (pat & 0x02) ? pen_on : pen_off;
+   val.w.h = (pat & 0x01) ? pen_on : pen_off;
+  // *(mem_ptr+7) =
+   *(mem_ptr+next_line+7) = val.d;
+   CPC.scr_offs += 8; // update PC screen buffer address
+}
+
+
+
 
 void draw16bpp_border_CRT(void)
 {

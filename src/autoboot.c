@@ -67,14 +67,14 @@ int validate_filename (ams_file dir_entry, unsigned char *filen)
 			{
 			NULLext=0;
 			validEXT=1;
-			filen[13]=filen[13]+32; //filename score update
+			filen[13]=filen[13]+30; //filename score update
 			}
 
 	if (strcmp((const char*)tmpEXT,"BIN") == 0)
 			{
 			NULLext=0;
 			validEXT=1;
-			filen[13]=filen[13]+8; //filename score update
+			filen[13]=filen[13]+15; //filename score update
 			}
 
 	if (validEXT==0) return 0;
@@ -255,7 +255,7 @@ int CPC_BootStartDisk (t_drive bootdisc)
 
 //	printf("%s  -->%i\n",best_filename,best_score);
 
-	if (best_score<40)
+	if (best_score<31)
 	{
 	//is CPM??
 

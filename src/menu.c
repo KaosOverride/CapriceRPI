@@ -636,153 +636,280 @@ void drawlist(char *extension)
 }
 
 
+enum {
+	ACTION_NULL,
+	ACTION_UP,
+	ACTION_DOWN,
+	ACTION_LEFT,
+	ACTION_RIGHT,
+	ACTION_SELECT,
+	ACTION_RETURN,
+	ACTION_PAGUP,
+	ACTION_PAGDOWN,
+	ACTION_ESCAPE,
+	ACTION_KCONTROL,
+	ACTION_KMAYS,
+	ACTION_KESPACE,
+	ACTION_KUCONTROL,
+	ACTION_KUMAYS,
+	ACTION_KUESPACE,
+	ACTION_ICONMENU,
+	ACTION_VKEY,
+	ACTION_VKEY_SWAP,
+	ACTION_SHUTDOWN,
+	ACTION_NULL2,
+	ACTION_ABORT
+};
 
-int eventloop(int ext) {
-	SDL_Event event;
-	int flag = 0;
-//	static int move_dir = 0;
-//	static Uint32 move_tick = 0;
-//	move_dir = 0;
-	while(SDL_PollEvent(&event)) {
-		switch(event.type) {
-//////////////
 
-    case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+Uint32 KTicks_UP,KTicks_DOWN,KTicks_LEFT,KTicks_RIGHT=0;
+
+int eventticks_poll()
+{
+	int counter=0;
+	Uint32 KTicks;
+	KTicks=SDL_GetTicks();
+
+	if ((KTicks_UP <KTicks) && (KTicks_UP>0))
+		{
+		counter++;
+		}
+	if ((KTicks_DOWN <KTicks) && (KTicks_DOWN>0))
+		{
+		counter++;
+		}
+	if ((KTicks_LEFT <KTicks) && (KTicks_LEFT>0))
+		{
+		counter++;
+		}
+	if ((KTicks_RIGHT <KTicks) && (KTicks_RIGHT>0))
+		{
+		counter++;
+		}
+
+	return counter>0;
+//return  KTicks_UP||KTicks_DOWN||KTicks_LEFT||KTicks_RIGHT>0;
+};
+
+int eventticks_make()
+{
+	int move_action = ACTION_NULL2;
+	Uint32 KTicks;
+
+//TICK_ENGINE
+
+	while (move_action == ACTION_NULL2)
+	{
+		KTicks=SDL_GetTicks();
+if (KTicks_DOWN > 0)	printf("Estado TICKs %d\n",KTicks);
+		if ((KTicks_UP <KTicks) && (KTicks_UP>0))
+			{
+			KTicks_UP=KTicks+200;
+			move_action=ACTION_UP;
+			break;
+			}
+		if ((KTicks_DOWN <KTicks) && (KTicks_DOWN>0))
+			{
+			KTicks_DOWN=KTicks+200;
+			move_action=ACTION_DOWN;
+//	printf("Progreso TICK DOWN\n");
+			break;
+			}
+		if ((KTicks_LEFT <KTicks) && (KTicks_LEFT>0))
+			{
+			KTicks_LEFT=KTicks+200;
+			move_action=ACTION_LEFT;
+			break;
+			}
+		if ((KTicks_RIGHT <KTicks) && (KTicks_RIGHT>0))
+			{
+			KTicks_RIGHT=KTicks+200;
+			move_action=ACTION_RIGHT;
+			break;
+			}
+		move_action=ACTION_NULL;
+
+	}
+return move_action;
+};
+
+int eventkeys(SDL_Event event,int flag) 
+	{
+	Uint32 KTicks;
+	int move_action = ACTION_NULL;
+	switch(event.type)
+		{
+
+	  	case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
 		case SDL_JOYBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
 
-				//move_dir = 0;
-				pcjoy_update (event);
+			//move_dir = 0;
+			pcjoy_update (event);
 
-				if  (pcjoy_pressed (PC_JOY_UP,event.jaxis.which) ) 
-					{		//Action UP
-					cur_pos--;
-					redraw=1;
-					//move_dir = -1;
-					//move_tick = 0;
+			if  (pcjoy_pressed (PC_JOY_UP,event.jaxis.which))
+				{		//Action UP
+				if (KTicks_UP==0)
+					{ 
+					move_action=ACTION_UP;
+					KTicks_UP=SDL_GetTicks()+1000;
 					break;
-					};
-
-				if  (pcjoy_pressed (PC_JOY_DOWN,event.jaxis.which)) 
-					{		//Action DOWN
-					cur_pos++;
-					redraw=1;			     
-					//move_dir = 1;
-					//move_tick = 0;
-					break;	
-					};
-
-				if  (pcjoy_pressed (PC_JOY_LEFT,event.jaxis.which))
-					{		//Action LEFT
-					//move_dir = 0;
-					if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);//filter
-					break;
-					};
-
-				if  (pcjoy_pressed (PC_JOY_RIGHT,event.jaxis.which)) 
-					{		//Action RIGHT
-					if(files[cur_pos].isdir){
-						strcat(open_path, files[cur_pos].name);
-						getDir(open_path, 0,ext);
-						//move_dir = 0;
-						cur_pos = 0;
-						draw_pos = 0;
-						redraw = 1;
-					} else {
-						flag = 1;
 					}
+				} else
+				{
+				KTicks_UP=0;
+				}
+
+			if  (pcjoy_pressed (PC_JOY_DOWN,event.jaxis.which))
+				{		//Action DOWN
+				if (KTicks_DOWN==0)
+					{
+					move_action=ACTION_DOWN;
+					KTicks_DOWN=SDL_GetTicks()+1000;
+//	printf("Inicio TICK DOWN %d - %d \n",event.jaxis.value,KTicks_DOWN);
+					break;
+					}
+				} else
+				{
+//	printf("Fin TICK DOWN %d \n",event.jaxis.value);
+				KTicks_DOWN=0;
+				}
+
+			if  (pcjoy_pressed (PC_JOY_LEFT,event.jaxis.which))
+				{		//Action LEFT
+				if (KTicks_LEFT==0)
+					{
+					//move_dir = 0;
+					move_action=ACTION_LEFT;
+					KTicks_LEFT=SDL_GetTicks()+1000;
 					break;
 					};
+				} else
+				{
+				KTicks_LEFT=0;
+				}
 
-				if (event.type == SDL_JOYBUTTONDOWN )		
+			if  (pcjoy_pressed (PC_JOY_RIGHT,event.jaxis.which))
+				{		//Action RIGHT
+				if (KTicks_RIGHT==0)
+					{
+					move_action=ACTION_RIGHT;
+					KTicks_RIGHT=SDL_GetTicks()+1000;
+					break;
+					}
+				} else
 				{
-				switch (event.jbutton.button)  	
+				KTicks_RIGHT=0;
+				}
+
+			if (event.type == SDL_JOYBUTTONUP )
+			{
+			switch (event.jbutton.button)
 				{
-					case SDL_JoyFire1:		//Accion seleccionar
-						if(files[cur_pos].isdir)
-						{
-							strcat(open_path, files[cur_pos].name);
-							getDir(open_path, 0,ext);
-							//move_dir = 0;
-							cur_pos = 0;
-							draw_pos = 0;
-							redraw = 1;
-						} else {
-							flag = 1;
-						}
-						break;
-					case SDL_JoyFire2:
-						//move_dir = 0;
-						if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);
-						break;
-					case SDL_JoyFire4:		// Accion salir ;
-						flag = 2;
-						break;
+				case SDL_JoyFire1:		//Accion seleccionar
+					if (flag==2) move_action=ACTION_KUESPACE;
+					break;
+				case SDL_JoyFire2:
+					if (flag==2) move_action=ACTION_KUMAYS;
+					break;
+				case SDL_JoyFire3:		// Accion salir ;
+					if (flag==2) move_action=ACTION_KUCONTROL;
+					break;
+				}
+
+			}
+
+
+			if (event.type == SDL_JOYBUTTONDOWN )
+			{
+			switch (event.jbutton.button)
+				{
+				case SDL_JoyFire1:		//Accion seleccionar
+					move_action=ACTION_SELECT;
+					if (flag==2) move_action=ACTION_KESPACE;
+					break;
+				case SDL_JoyFire2:
+					move_action=ACTION_RETURN;
+					if (flag==2) move_action=ACTION_KMAYS;
+					break;
+				case SDL_JoyFire3:		// Accion salir ;
+					move_action=ACTION_ABORT;
+					if (flag==1) move_action=ACTION_ICONMENU;
+					if (flag==2) move_action=ACTION_KCONTROL;
+					break;
+				case SDL_JoyFire4:		// Accion salir ;
+					move_action=ACTION_ICONMENU;
+					if (flag==2) move_action=ACTION_VKEY_SWAP;
+					break;
+				case SDL_JoyFire5:		// Accion salir ;
+					move_action=ACTION_PAGUP;
+					if (flag==2) move_action=ACTION_VKEY;
+					break;
+				case SDL_JoyFire6:		// Accion salir ;
+					move_action=ACTION_PAGDOWN;
+					if (flag==2) move_action=ACTION_VKEY_SWAP;
+					break;
+			//if (kevent.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL))
 				}
 			}
          		break;
 
 ///////////////
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym) {
-					case SDLK_PAGEUP:
-        					cur_pos=cur_pos-5;
-        					redraw=1;
-//						move_dir = -1;
-//						move_tick = 0;
-						break;
-					case SDLK_PAGEDOWN:
-						cur_pos=cur_pos+5;
-						redraw=1;
-//						move_dir = 1;
-//						move_tick = 0;
-						break;
-				
-
-			case SDLK_UP:
-				cur_pos--;
-				redraw=1;
-				//move_dir = -1;
-				//move_tick = 0;
-				break;
-			case SDLK_DOWN:
-				cur_pos++;
-				redraw=1;
-				//move_dir = 1;
-				//move_tick = 0;
-				break;
-			case SDLK_LEFT:
-				//move_dir = 0;
-				if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);
-				break;
-			case SDLK_RIGHT:
-			case SDLK_RETURN:
-				if(files[cur_pos].isdir)
+		case SDL_KEYDOWN:
+			switch (event.key.keysym.sym) 
 				{
-					strcat(open_path, files[cur_pos].name);
-					getDir(open_path, 0,ext);
-					//move_dir = 0;
-					cur_pos = 0;
-					draw_pos = 0;
-					redraw = 1;
-				} else {
-					flag = 1;
+				case SDLK_PAGEUP:
+					move_action=ACTION_PAGUP;
+					break;
+				case SDLK_PAGEDOWN:
+					move_action=ACTION_PAGDOWN;
+					break;
+				case SDLK_UP:
+					move_action=ACTION_UP;
+					break;
+				case SDLK_DOWN:
+					move_action=ACTION_DOWN;
+					break;
+				case SDLK_LEFT:
+					move_action=ACTION_LEFT;
+					break;
+				case SDLK_RIGHT:
+					move_action=ACTION_RIGHT;
+					break;
+				case SDLK_RETURN:
+					move_action=ACTION_SELECT;
+					break;
+				case CAP32_OPTIONS:
+					move_action=ACTION_ICONMENU;
+					break;
+				case SDLK_LCTRL:
+				case SDLK_RCTRL:
+					move_action=ACTION_KCONTROL;
+					break;
+				case SDLK_LSHIFT:
+				case SDLK_RSHIFT:
+					move_action=ACTION_KMAYS;
+					break;
+				case SDLK_SPACE:
+					move_action=ACTION_KESPACE;
+					break;
+				case CAP32_VKEY: //F9
+					if (event.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL))
+					move_action=ACTION_VKEY_SWAP;
+					else
+					move_action=ACTION_VKEY;
+					break;
+				case CAP32_EXIT:
+					move_action=ACTION_SHUTDOWN;
+					break;
+				case SDLK_ESCAPE:
+				case 'q':
+					move_action=ACTION_ABORT;
+					break;
+				default:
+					break;
 				}
 				break;
-			case SDLK_ESCAPE:
-			case 'q':
-				flag = 2;
-				break;
-/*			case 'z':
-				prevskin();
-				break;
-			case 'x':
-				nextskin();
-				break;*/
-			default:
-				break;
-			}
-			break;
 		case SDL_KEYUP:
 			switch (event.key.keysym.sym) {
 			case SDLK_UP:
@@ -790,11 +917,101 @@ int eventloop(int ext) {
 				//move_dir = 0;
 				//move_tick = 0;
 				break;
+				case SDLK_LCTRL:
+				case SDLK_RCTRL:
+					move_action=ACTION_KUCONTROL;
+					break;
+				case SDLK_LSHIFT:
+				case SDLK_RSHIFT:
+					move_action=ACTION_KUMAYS;
+					break;
+				case SDLK_SPACE:
+					move_action=ACTION_KUESPACE;
+					break;
 			default:
 				break;
 			}
 			break;
 		}
+
+
+	return move_action;
+};
+
+int eventloop(int ext) {
+	int flag = 0;
+//	static int move_dir = 0;
+//	static Uint32 move_tick = 0;
+//	move_dir = 0;
+	SDL_Event event;
+	while ( (SDL_PollEvent(&event)) || eventticks_poll() )
+	{
+	int action;
+	if (eventticks_poll())
+		{
+		action=eventticks_make();
+		}
+		else
+		{
+		action=eventkeys (event,0);
+		}
+/* DO ACTIONS   */
+
+	switch (action)
+	{
+	case ACTION_UP:
+		cur_pos--;
+		redraw=1;
+		//move_dir = -1;
+		//move_tick = 0;
+		break;
+	case ACTION_DOWN:
+		cur_pos++;
+		redraw=1;
+		//move_dir = 1;
+		//move_tick = 0;
+		break;
+	case ACTION_LEFT:
+	case ACTION_RETURN:
+		//move_dir = 0;
+		if (ext!=EXT_UNKNOWN) getDir(open_path, 1,ext);
+		break;
+	case ACTION_RIGHT:
+	case ACTION_SELECT:
+		if(files[cur_pos].isdir)
+		{
+			strcat(open_path, files[cur_pos].name);
+			getDir(open_path, 0,ext);
+			//move_dir = 0;
+			cur_pos = 0;
+			draw_pos = 0;
+			redraw = 1;
+		} else {
+			flag = 1;
+		}
+		break;
+	case ACTION_PAGUP:
+		cur_pos=cur_pos-5;
+		redraw=1;
+		//move_dir = -1;
+		//move_tick = 0;
+		break;
+	case ACTION_PAGDOWN:
+		cur_pos=cur_pos+5;
+		redraw=1;
+		//move_dir = 1;
+		//move_tick = 0;
+		break;
+	case ACTION_ESCAPE:
+		break;
+	case ACTION_ABORT:
+		flag = 2;
+		break;
+	case ACTION_NULL:
+	default:
+		break;
+
+
 	}
 /*
 
@@ -825,6 +1042,8 @@ int eventloop(int ext) {
 */
 			if(cur_pos >= nfiles) cur_pos =  nfiles - 1;
 			if(cur_pos < 0) cur_pos = 0;
+	}
+
 	return flag;
 }
 
@@ -1217,83 +1436,43 @@ if (!savefail)
 		displaytext( 120, 125 ,"CANCEL", getfontcolor(250, 250*(!qopt), 0));
 		menu_blit();
 
-		//SDL EVALUATE
-		while(SDL_PollEvent(&qevent)) 
-		 {
-			int which_joy;
-			switch(qevent.type)
-			 {
-			 case SDL_JOYAXISMOTION:  // Handle Joystick Motion 
-			 case SDL_JOYBUTTONUP:
-			 case SDL_JOYBUTTONDOWN:
-                  		pcjoy_update (qevent);
-				if (qevent.type==SDL_JOYAXISMOTION)
-					which_joy=qevent.jaxis.which;
-					else
-					which_joy=qevent.jbutton.which;
+/* DO ACTIONS   */
 
-				if (pcjoy_pressed (PC_JOY_LEFT,which_joy))
-				 {
-					qopt=0;
-				 }
-				if (pcjoy_pressed (PC_JOY_RIGHT, which_joy))
-				 {
-					qopt=1;
-				 }
-				if (qevent.type == SDL_JOYBUTTONDOWN )
-				 {
-				 switch (qevent.jbutton.button)
-				  {
-					case SDL_JoyFire1:
-						//Accion seleccionar
-						if (!qopt)
-						{
-						 //SAVESNAP
-						snapshot_save(snapfilename);
-						}
-						else savefail=2; //CANCELED
+		while (SDL_PollEvent(&qevent))
+		{
 
-						qexit=1;
-						break;
 
-					case SDL_JoyFire4:
-						// Accion salir ;
-						qexit=1;
-						break;
-				  }
+
+		switch (eventkeys(qevent,0))
+		{
+		case ACTION_LEFT:
+			qopt=0;
+			break;
+		case ACTION_RIGHT:
+			qopt=1;
+			break;
+		case ACTION_SELECT:
+			//Accion seleccionar
+			if (!qopt)
+				{
+				 //SAVESNAP
+				snapshot_save(snapfilename);
 				}
-			case SDL_KEYDOWN:
-			 switch (qevent.key.keysym.sym) 
-            		  {
-				case SDLK_LEFT:
-					qopt=0;
-						break;
+			else savefail=2; //CANCELED
+			qexit=1;
+			break;
+		case ACTION_ABORT:
+			qexit=1;
+			break;
+		case ACTION_NULL:
+		default:
+			break;
 
-				case SDLK_RIGHT:
-					qopt=1;
-						break;
-				case SDLK_RETURN:
-				case SDLK_SPACE: 
-						//Accion seleccionar
-						if (!qopt)
-						{
-						 //SAVESNAP
-						snapshot_save(snapfilename);
-						}
-						else savefail=2; //CANCELED
 
-						qexit=1;
-						break;
+		}
 
-				case SDLK_ESCAPE:
-				case 'q':
-						qexit=1;
-						break;
-				default:
-						break;
-			    }
 
-			 } //Switch
+
 		}//While event
 
 	  }
@@ -1342,37 +1521,26 @@ if (savefail > 0)
 
 
 
-		//SDL EVALUATE
-		while(SDL_PollEvent(&qevent)) 
-		 {
-			switch(qevent.type)
-			 {
-			 case SDL_JOYBUTTONDOWN:
-				 switch (qevent.jbutton.button)
-				  {
-					case SDL_JoyFire1:
-					case SDL_JoyFire4:
-						qexit=1;
-						break;
-				  }
-				break;
+/* DO ACTIONS   */
+	SDL_Event event;
+	while (SDL_PollEvent(&qevent))
+	{
 
-			case SDL_KEYDOWN:
-			 switch (qevent.key.keysym.sym) 
-            		  {
 
-				case SDLK_RETURN:
-				case SDLK_SPACE: 
-				case SDLK_ESCAPE:
-				case 'q':
-						//Accion seleccionar
-						qexit=1;
-						break;
-				default:
-						break;
-			    }
+	switch (eventkeys(qevent,0))
+	{
+	case ACTION_SELECT:
+	case ACTION_ESCAPE:
+	case ACTION_ABORT:
+		qexit=1;
+		break;
+	case ACTION_NULL:
+	default:
+		break;
 
-			 } //Switch
+
+	}
+
 		}//While event
 
 	  }
@@ -1990,134 +2158,63 @@ return flag;
 
 
 
-
 //EVALUATION MAIN LOOP
 
 
-int eventloop_menu(int menu_type) {
-	SDL_Event event;
+int eventloop_menu(int menu_type)
+{
 	int make_option=0;
 	int flag = 0;
 //	static int move_dir = 0;
 //	move_dir = 0;
+	SDL_Event event;
+	while (SDL_PollEvent(&event))
+	{
 
-	while(SDL_PollEvent(&event)) 
-	{int which_joy;
-	switch(event.type) 
-		{
-
-//////////////
-
-		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
-		case SDL_JOYBUTTONUP:
-		case SDL_JOYBUTTONDOWN:
-				//move_dir = 0;
-				pcjoy_update (event);
-				if (event.type==SDL_JOYAXISMOTION)
-					which_joy=event.jaxis.which;
-					else
-					which_joy=event.jbutton.which;
-
-
-				if (pcjoy_pressed (PC_JOY_UP, which_joy))
-				{		//Action UP
-					cur_menupos--;
-					redraw=1;
-					//move_dir = -1;
-					break;
-				};
-				if (pcjoy_pressed (PC_JOY_DOWN, which_joy))
-				{		//Action DOWN
-					cur_menupos++;
-					redraw=1;			     
-					//move_dir = 1;
-					break;
-				};
-                  		if (pcjoy_pressed (PC_JOY_LEFT,which_joy))
-				{		//Action LEFT
-					flag = 1;
-				};
-				if (pcjoy_pressed (PC_JOY_RIGHT,which_joy))
-				{		//Action RIGHT
-					redraw=1;
-					make_option=1;
-					//move_dir = 0;
-					break;
-				};
-
-				if (event.type == SDL_JOYBUTTONDOWN )
-				{
-				 switch (event.jbutton.button)
-					{
-					case SDL_JoyFire1:	//Accion seleccionar
-						redraw=1;
-						make_option=1;
-						//move_dir = 0;
-						break;
-					case SDL_JoyFire4:	// Accion salir ;
-						flag = 2;
-						break;
-					}
-				}
-         			break;
-
-///////////////
-
-		case SDL_KEYDOWN:
-			switch (event.key.keysym.sym) {
-				case SDLK_UP:
-					cur_menupos--;
-					redraw=1;
-					//move_dir = -1;
-					break;
-				case SDLK_DOWN:
-					cur_menupos++;
-					redraw=1;
-					//move_dir = 1;
-					break;
-				case SDLK_RETURN:
-				case SDLK_RIGHT:
-					redraw=1;
-					make_option=1;
-					//move_dir = 0;
-					break;
-				case SDLK_LEFT:
-					flag = 1;
-					break;
-				case SDLK_ESCAPE:
-				case 'q':
-					flag = 2;
-					break;
-/*				case 'z':
-					prevskin();
-					break;
-				case 'x':
-					nextskin();
-					break;*/
-				default:
-					break;
-			}
-			break;
-		case SDL_KEYUP:
-			switch (event.key.keysym.sym) {
-				case SDLK_UP:
-				case SDLK_DOWN:
-					//move_dir = 0;
-					break;
-				default:
-					break;
-				}
-			break;
-		}
-
+	switch (eventkeys(event,0))
+	{
+	case ACTION_UP:
+		cur_menupos--;
+		redraw=1;
+		//move_dir = -1;
+		break;
+	case ACTION_DOWN:
+		cur_menupos++;
+		redraw=1;
+		//move_dir = 1;
+		break;
+	case ACTION_LEFT:
+	case ACTION_RETURN:
+		flag = 1;
+		break;
+	case ACTION_RIGHT:
+	case ACTION_SELECT:
+		redraw=1;
+		make_option=1;
+		//move_dir = 0;
+		break;
+	case ACTION_PAGUP:
+		break;
+	case ACTION_PAGDOWN:
+		break;
+	case ACTION_ESCAPE:
+		break;
+	case ACTION_ABORT:
+		flag = 2;
+		break;
+	case ACTION_NULL:
+	default:
+		break;
+	}
 
 
  	if (make_option !=0)
 	{
  	make_option=0;
 
-                 switch (menu_type){
-                        case MENU_DISK:
+		switch (menu_type)
+		{
+                	case MENU_DISK:
                                   flag=menu_eval_disc(cur_menupos);
                                   redraw=1;
                                   break;
@@ -2142,14 +2239,13 @@ int eventloop_menu(int menu_type) {
                                   flag=menu_eval_settings(cur_menupos);
                                   redraw=1;
                                   break;
-                                  }
-             }
-
-	}
+		}
+        }
 
 
 			if(cur_menupos >= maxopt_menucurrent) cur_menupos =  0;
 			if(cur_menupos < 0) cur_menupos = maxopt_menucurrent-1;
+	}
 	return flag;
 }
 
@@ -2946,70 +3042,33 @@ void icomenu_vis (bool pausescreen)
 void icomenu_eval (SDL_Event icoevent)
 {
 	int sele=0;
-	int which_joy;
 
-	switch (icoevent.type)
+
+/* DO ACTIONS   */
+
+
+	switch (eventkeys(icoevent,1)) // 1=CAP32_OPTIONS
 	{
-							//////////////
+	case ACTION_LEFT:
+                sele=ICOMENU_LEFT;
+		break;
+	case ACTION_RIGHT:
+                sele=ICOMENU_RIGHT;
+		break;
+	case ACTION_SELECT:
+                sele=ICOMENU_RUN;
+		break;
+	case ACTION_ICONMENU:
+                sele=ICOMENU_EXIT;
+		break;
+	case ACTION_NULL:
+	default:
+		break;
 
-		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
-		case SDL_JOYBUTTONUP:
-		case SDL_JOYBUTTONDOWN:
-			if (icoevent.type==SDL_JOYAXISMOTION)
-			which_joy=icoevent.jaxis.which;
-			else
-			which_joy=icoevent.jbutton.which;
 
-			pcjoy_update (icoevent);
-			if  (pcjoy_pressed (PC_JOY_LEFT,which_joy))
-				{		//Action LEFT
-				sele=ICOMENU_LEFT;
-				break;
-				};
-			if (pcjoy_pressed (PC_JOY_RIGHT,which_joy))
-				{		//Action RIGHT
-				sele=ICOMENU_RIGHT;
-				break;
-				};
-
-	if (icoevent.type == SDL_JOYBUTTONDOWN )
-	{
-		switch (icoevent.jbutton.button)  	
-		{
-			case SDL_JoyFire1:
-			//Accion seleccionar
-			sele=ICOMENU_RUN;
-			break;
-		case SDL_JoyFire4:
-			// Accion salir ;
-			sele=ICOMENU_EXIT;
-			break;
-		}
 	}
-	break;
-
-///////////////
 
 
-            case SDL_KEYUP:
-            case SDL_KEYDOWN:
-                 switch ((int)icoevent.key.keysym.sym)
-                        {
-                        case CAP32_OPTIONS:
-                             sele=ICOMENU_EXIT;
-                             break;
-                        case SDLK_LEFT:
-                             sele=ICOMENU_LEFT;
-                             break;
-                        case SDLK_RIGHT:
-                             sele=ICOMENU_RIGHT;
-                             break;
-                        case SDLK_RETURN:
-                             sele=ICOMENU_RUN;
-                             break;
-                        }
-                 break;
-            }
             switch (sele)
             {
                    case ICOMENU_EXIT:
@@ -3059,7 +3118,7 @@ void icomenu_eval (SDL_Event icoevent)
                                           default:
                                                   break;
                                           }
-                     }
+                     	}
 
 		}
 }
@@ -3420,205 +3479,82 @@ void eval_keyboard(SDL_Event kevent)
 {
 
 int vkey_move=VKEY_NONE;
-int which_joy;
-   switch (kevent.type) {
 
-  
-//KEYS
 
-//////JOY START
 
-		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
-		case SDL_JOYBUTTONUP:
-		case SDL_JOYBUTTONDOWN:
+/* DO ACTIONS   */
 
-		pcjoy_update (kevent);
-		if (kevent.type==SDL_JOYAXISMOTION)
-			which_joy=kevent.jaxis.which;
-			else
-			which_joy=kevent.jbutton.which;
 
-		if (pcjoy_pressed (PC_JOY_UP,which_joy))
-			{		//Action UP
-                        if (!(vkey_pressed)) vkey_move=VKEY_UP ;
-
-			break;
-			};
-		if (pcjoy_pressed (PC_JOY_DOWN,which_joy))
-			{		//Action DOWN
-                        if (!(vkey_pressed)) vkey_move=VKEY_DOWN ;
-
-			break;
-			};
-		if (pcjoy_pressed (PC_JOY_LEFT,which_joy))
-			{		//Action LEFT
-                        if (!(vkey_pressed)) vkey_move=VKEY_LEFT ;
-
-			break;
-			};
-		if (pcjoy_pressed (PC_JOY_RIGHT,which_joy))
-			{		//Action RIGHT
-                        if (!(vkey_pressed)) vkey_move=VKEY_RIGHT ;
-
-			break;
-			};
-
-		if (kevent.type == SDL_JOYBUTTONUP )
-			{
-				switch (kevent.jbutton.button)
-				{
-					case SDL_JoyFire1:
-								cpc_key_unpress (virtualkeys[keyboard_row][keyboard_col].keyval);
-								vkey_pressed=0;
-								break;
-
-					case SDL_JoyFire2: //SHIFT
-								cpc_key_unpress (0x25);
-								vkey_pressed=0;
-								vkey_shift_pressed=0;
-								break;
-
-					case SDL_JoyFire3: //CTRL
-								cpc_key_unpress (0x27);
-								vkey_pressed=0;
-								vkey_control_pressed=0;
-
-								break;
-/*					case SDL_JoyFire4:
-								break;
-					case SDL_JoyFire5:
-								break;
-					case SDL_JoyFire6:
-								break;
-*/
-				}
-			}
-
-		if (kevent.type == SDL_JOYBUTTONDOWN )
-			{
-				switch (kevent.jbutton.button)
-				{
-					case SDL_JoyFire1:
-	        		                                cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
-        			                                vkey_pressed=1;
-								break;
-					case SDL_JoyFire2: //SHIFT
-								cpc_key_press (0x25);
-								vkey_pressed=0;
-								vkey_shift_pressed=1;
-
-								break;
-					case SDL_JoyFire3: //CONTROL
-								cpc_key_press (0x27);
-								vkey_pressed=0;
-								vkey_control_pressed=1;
-								break;
-					case SDL_JoyFire4:
-								keyboard_pos=!(keyboard_pos);
-
-								break;
-					case SDL_JoyFire5:
-								keyboard_show=0;
-								break;
-/*					case SDL_JoyFire6:
-								break;
-*/
-				}
-			}
+	switch (eventkeys(kevent,2))// VKEYBOARD EVENTS
+	{
+	case ACTION_UP:
+		if (!(vkey_pressed)) vkey_move=VKEY_UP ;
+		break;
+	case ACTION_DOWN:
+		if (!(vkey_pressed)) vkey_move=VKEY_DOWN;
+		break;
+	case ACTION_LEFT:
+		if (!(vkey_pressed)) vkey_move=VKEY_LEFT ;
+		break;
+	case ACTION_RIGHT:
+		if (!(vkey_pressed)) vkey_move=VKEY_RIGHT;
+		break;
+	case ACTION_PAGUP:
+		break;
+	case ACTION_PAGDOWN:
+		break;
+	case ACTION_ESCAPE:
+		break;
+	case ACTION_KUCONTROL:
+		cpc_key_unpress (0x27);
+		//cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
+		vkey_pressed=0;
+		vkey_control_pressed=0;
+		break;
+	case ACTION_KUMAYS:
+		cpc_key_unpress (0x25);
+		//cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
+		vkey_pressed=0;
+		vkey_shift_pressed=0;
+		break;
+	case ACTION_KUESPACE:
+		cpc_key_unpress (virtualkeys[keyboard_row][keyboard_col].keyval);
+		vkey_pressed=0;
+		break;
+	case ACTION_KCONTROL:
+		cpc_key_press (0x27);
+		//cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
+		vkey_pressed=0;
+		vkey_control_pressed=1;
+		break;
+	case ACTION_KMAYS:
+		cpc_key_press (0x25);
+		//cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
+		vkey_pressed=0;
+		vkey_shift_pressed=1;
+		break;
+	case ACTION_KESPACE:
+		cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
+		vkey_pressed=1;
+		break;
+	case ACTION_VKEY_SWAP:
+		keyboard_pos=!(keyboard_pos);
+		break;
+	case ACTION_VKEY:
+		keyboard_show=0;
+		break;
+	case ACTION_SHUTDOWN:
+                emulatorend=1;
+		break;
+	case ACTION_NULL:
+	default:
+		break;
+	}
 
 
 
 
-         		break;
 
-//////JOY END
-
-
-
-
-            case SDL_KEYUP:
-               {
-               switch ((int)kevent.key.keysym.sym) 
-                     {
-                     case SDLK_LCTRL:
-                     case SDLK_RCTRL:
-                          cpc_key_unpress (0x27);
-                          //cpc_key_unpress (virtualkeys[keyboard_row][keyboard_col].keyval);
-                          vkey_pressed=0;
-                          vkey_control_pressed=0;
-                          break;
-                   
-                     case SDLK_LSHIFT:
-                     case SDLK_RSHIFT:
-                          cpc_key_unpress (0x25);
-                          //cpc_key_unpress (virtualkeys[keyboard_row][keyboard_col].keyval);
-                          vkey_pressed=0;
-                          vkey_shift_pressed=0;
-                          break;
-
-                     case SDLK_SPACE:
-                          cpc_key_unpress (virtualkeys[keyboard_row][keyboard_col].keyval);
-                          vkey_pressed=0;
-                          break; 
-                     }
-               break;
-               }
-
-
-            case SDL_KEYDOWN:
-               {
-                     switch ((int)kevent.key.keysym.sym) 
-                     {  
-                     case SDLK_LCTRL:
-                     case SDLK_RCTRL:
-                             cpc_key_press (0x27);
-                             //cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
-                             vkey_pressed=0;
-                             vkey_control_pressed=1;
-                             break;
-                     case SDLK_LSHIFT:
-                     case SDLK_RSHIFT:
-                             cpc_key_press (0x25);
-                             //cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
-                             vkey_pressed=0;
-                             vkey_shift_pressed=1;
-                             break;
-
-                        case SDLK_SPACE:
-                                        cpc_key_press (virtualkeys[keyboard_row][keyboard_col].keyval);
-                                        vkey_pressed=1;
-                             break;
-                        case SDLK_LEFT:
-                                       if (!(vkey_pressed)) vkey_move=VKEY_LEFT ;
-                        		break;
-                        case SDLK_RIGHT:
-                                       if (!(vkey_pressed)) vkey_move=VKEY_RIGHT;
-                        		break;
-                        case SDLK_UP:
-                                       if (!(vkey_pressed)) vkey_move=VKEY_UP ;
-                        		break;
-                        case SDLK_DOWN:
-                                       if (!(vkey_pressed)) vkey_move=VKEY_DOWN;
-                        		break;
-
-                        case CAP32_VKEY: //F9
-                           	 if (kevent.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL))
-                           	{
-                           	   keyboard_pos=!(keyboard_pos);
-                           	   } else {
-                           	   keyboard_show=0;
-                           	}
-                           	break;
-                        case CAP32_EXIT:
-				emulatorend=1;
-				break;
-
-                     }
-                  break; 
-		       }
-            case SDL_QUIT:
-                 emulatorend=1;
-         }
    // GENERAL MOVEMENT
          switch (vkey_move)
                 {

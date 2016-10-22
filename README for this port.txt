@@ -97,6 +97,12 @@ ________________________________________________________________________________
 Release history
 ================
 
+V1.3a Fix Release
+====
+-Analog Joysticks should not give trouble at the menus.
+-Rework of lot of the menu code about joysticks and keyboard. Should
+ help for future fixes. 
+
 V1.3 Release
 ====
 -Flexible support for free assign to the 4 USB joypads of CPC

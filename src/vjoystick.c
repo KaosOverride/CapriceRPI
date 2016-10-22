@@ -1,5 +1,7 @@
 #include "vjoystick.h"
 
+#define	DEAD_ZONE	3200
+#define	NOMAN_ZONE	3201
 
 int CPC_Joys[4];
 int CPC_Joystate[8]={0,0,0,0,0,0,0,0};
@@ -60,6 +62,10 @@ int pcjoy_matrix[4][4][3]= {
 	memset(pcjoy_matrix, 0, sizeof(pcjoy_matrix)); 
 }
 
+int pcjoy_deadzone(signed int axis)
+{
+return (((axis >NOMAN_ZONE)||(axis <-NOMAN_ZONE)) || ((axis <DEAD_ZONE)&& (axis >-DEAD_ZONE)) ); //NOMAN ZONE FILTER!!!!
+};
 
 void pcjoy_update (SDL_Event gevent )
 {
@@ -67,7 +73,8 @@ int pcjoy_move=0;
 if (gevent.type ==	SDL_JOYBUTTONDOWN) pcjoy_move=1;
 	
 
-if (gevent.type ==	SDL_JOYAXISMOTION)
+if ((gevent.type ==	SDL_JOYAXISMOTION) && (pcjoy_deadzone(gevent.jaxis.value)) )
+ 
 	{     //DO AXIX MOTIONS
 
 //	if ( ( event.jaxis.value < -3000 ) || (event.jaxis.value > 3000 ) ) 
@@ -77,9 +84,9 @@ if (gevent.type ==	SDL_JOYAXISMOTION)
             /* Up-Down movement code goes here */
 
 			//_UP:
-			pcjoy_matrix [gevent.jaxis.which][0][1] = (gevent.jaxis.value < -3000);
+			pcjoy_matrix [gevent.jaxis.which][0][1] = (gevent.jaxis.value < -NOMAN_ZONE);
 			//DOWN:
-			pcjoy_matrix [gevent.jaxis.which][2][1] = (gevent.jaxis.value > 3000);
+			pcjoy_matrix [gevent.jaxis.which][2][1] = (gevent.jaxis.value > NOMAN_ZONE);
 	}
 
         if( gevent.jaxis.axis == 0) 
@@ -87,9 +94,9 @@ if (gevent.type ==	SDL_JOYAXISMOTION)
             /* Left-right movement code goes here */
 
 			//_LEFT:
-			pcjoy_matrix [gevent.jaxis.which][1][0] = (gevent.jaxis.value < -3000);
+			pcjoy_matrix [gevent.jaxis.which][1][0] = (gevent.jaxis.value < -NOMAN_ZONE);
 			//RIGHT:
-			pcjoy_matrix [gevent.jaxis.which][1][2] = (gevent.jaxis.value > 3000);
+			pcjoy_matrix [gevent.jaxis.which][1][2] = (gevent.jaxis.value > NOMAN_ZONE);
 
 	}
 

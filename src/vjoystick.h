@@ -40,4 +40,5 @@
 
 void pcjoy_reset (void);
 void pcjoy_update ( SDL_Event gevent);
+int pcjoy_deadzone (signed int axis);   
 int pcjoy_pressed (int pcjoy_dir, int which);   

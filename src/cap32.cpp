@@ -491,13 +491,14 @@ extern int keyboard_pos,keyboard_show;
 
 int CPC_even_frame=0;
 int CPC_render_mode=0;
-int CPC_max_render_mode=3;
+int CPC_max_render_mode=3; //4 but not for now...
 int CPC_render_msg_delay=0;
-char CPC_render_mode_desc[4][15]={
+char CPC_render_mode_desc[5][15]={
  "PROGRESSIVE",
  " SCANLINES ",
  "INTERLACED ",
- " CRT EMUL  "
+ " CRT SCANL ",
+ " CRT INTERL"
 };
 
 char chAppPath[_MAX_PATH + 1];
@@ -3420,7 +3421,15 @@ case 15:
                border_handler = draw16bpp_border_scanplus;
 	         break;
 
-	case 3:  //CRT EMUL
+	case 3:  //CRT SCANLINES
+
+               mode_handler[0] = draw16bpp_mode0_CRT;
+               mode_handler[1] = draw16bpp_mode1_CRT;
+               mode_handler[2] = draw16bpp_mode2_CRT;
+               mode_handler[3] = draw16bpp_mode0_CRT;
+               border_handler = draw16bpp_border_CRT;
+	         break;
+	case 4:  //CRT INTERLACED
 
                mode_handler[0] = draw16bpp_mode0_CRT;
                mode_handler[1] = draw16bpp_mode1_CRT;
@@ -4419,7 +4428,7 @@ newrom_load("sym-romB.rom","./rom",16);
 newrom_load("sym-romC.rom","./rom",17);
 newrom_load("sym-romD.rom","./rom",18);
 
- TESTING*/
+TESTING*/
 
 	pcjoy_init();  //Poner a cero el joystick virtual
 	ToToJoy3=0;
