@@ -27,8 +27,22 @@ Features:
 To do:
 -Don't know. Please, tell me what else can I do!!
 _____________________________________________________________________________________________________
-
 Options
+_____________________________________________________________________________________________________
+
+Command Line
+
+   Usage: CapriceRPI [DSK,CDT,SNA file] <options>
+   Options:
+   --model   464/664/6128     = Set model
+   --mem     64/128/256/576   = Set memory
+   --green                    = Set green monitor
+   --kbl     en/fr/sp         = Set keyboard layout
+   --drvB    [DSK file]       = Insert [DSK] in B drive
+   --nosound                  = Disable sound
+   --notapeturbo              = Disable tape turboload
+      
+_____________________________________________________________________________________________________
 
 Main Emulation
 ===================
@@ -96,6 +110,11 @@ ________________________________________________________________________________
 
 Release history
 ================
+
+V1.3b Command Line Fun Release
+====
+-Resolved an issue with ZIP files at read only dirs
+-Added more command line options for emulator setings.
 
 V1.3a Fix Release
 ====

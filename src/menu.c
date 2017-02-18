@@ -701,7 +701,7 @@ int eventticks_make()
 	while (move_action == ACTION_NULL2)
 	{
 		KTicks=SDL_GetTicks();
-if (KTicks_DOWN > 0)	printf("Estado TICKs %d\n",KTicks);
+//if (KTicks_DOWN > 0)	printf("Estado TICKs %d\n",KTicks);
 		if ((KTicks_UP <KTicks) && (KTicks_UP>0))
 			{
 			KTicks_UP=KTicks+200;
@@ -735,7 +735,7 @@ return move_action;
 
 int eventkeys(SDL_Event event,int flag) 
 	{
-	Uint32 KTicks;
+//	Uint32 KTicks;
 	int move_action = ACTION_NULL;
 	switch(event.type)
 		{
@@ -1522,7 +1522,7 @@ if (savefail > 0)
 
 
 /* DO ACTIONS   */
-	SDL_Event event;
+//	SDL_Event event;
 	while (SDL_PollEvent(&qevent))
 	{
 
@@ -2729,7 +2729,7 @@ void draw_menujoy(void) {
 	displaytext( 105, 25 ,"JOYSTICK SETUP", getfontcolor(250, 250, 0));
 	opt_menujoy=1;
 	for(i=draw_menupos;(opt_menujoy<=maxopt_menujoy) && (y < 250);i++, y+=25){
-		int color_menu =0;
+//		int color_menu =0;
         if(i == cur_menupos) 
 		{
 		cr=250;
@@ -2780,7 +2780,7 @@ void draw_menujoy(void) {
 int load_menujoy( )
 {
 
-int indx;
+//int indx;
 int flag;
 // char *path;
 	SDL_BlitSurface( fondo, NULL , montaje, NULL ); 

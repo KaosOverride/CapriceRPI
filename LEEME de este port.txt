@@ -27,8 +27,21 @@ Caracteristicas:
 Por hacer:
 -No se. Decidme vosotros que mas le puedo poner!!
 _____________________________________________________________________________________________________
-
 Opciones
+_____________________________________________________________________________________________________
+
+Linea de comandos:
+==================
+   Uso: CapriceRPI [DSK,CDT,SNA] <opciones>
+
+   --model   464/664/6128     = Cambiar modelo
+   --mem     64/128/256/576   = Cambiar memoria
+   --green                    = Activar pantalla verde
+   --kbl     en/fr/sp         = Asignar distribucion de teclado
+   --drvB    [DSK file]       = Insertar [DSK] en unidad B
+   --nosound                  = Desactivar sonido
+   --notapeturbo              = Desactivar carga turbo cintas
+_____________________________________________________________________________________________________
 
 Emulacion principal
 ===================
@@ -97,6 +110,11 @@ ________________________________________________________________________________
 Historial de versiones
 ======================
 
+V1.3b Command Line Fun Release
+====
+-Arreglado el soporte de ZIPs en carpetas de solo lectura.
+-Soporte de nuevas opciones en linea de comandos.
+
 V1.3a Fix Release
 ====
 -Los joysticks analogicos ya no deberian dar problemas al
@@ -155,4 +173,5 @@ V0.01 ALPHA - GP2x W.I.P 6 fast port
 -Reescritura de los menus para la nueva configuracion.
 -Ejecutable monolitico portable. Sin dependencias de ficheros externos (ROMs, etc)
 -Teclado virtual no funcional-incompleto
+
 

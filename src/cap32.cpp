@@ -266,7 +266,11 @@ SDL_Joystick* joystick3;
 SDL_Joystick* joystick4;
 SDL_AudioSpec *audio_spec = NULL;
 SDL_Surface *video_surface = NULL;
+SDL_Surface *realback_surface = NULL;
 SDL_Surface *back_surface = NULL;
+SDL_Surface *int1_surface = NULL;
+SDL_Surface *int2_surface = NULL;
+SDL_Surface *blend_surface = NULL;
 SDL_Rect video_rect, back_rect,SDL_rect;
 
 
@@ -348,6 +352,21 @@ dword freq_table[MAX_FREQ_ENTRIES] = {
 };
 
 #include "font.c"
+
+typedef union
+{
+ struct
+ {
+	unsigned char r : 5;
+	unsigned char g : 6;
+	unsigned char b : 5;
+ };
+ unsigned int value;
+}rgbcolour;
+
+
+
+
 
 static double colours_rgb[32][3] = {
    { 0.5, 0.5, 0.5 }, { 0.5, 0.5, 0.5 },{ 0.0, 1.0, 0.5 }, { 1.0, 1.0, 0.5 },
@@ -477,6 +496,12 @@ unsigned char ToToJoy4;
    bool have_DSK = false;
    bool have_SNA = false;
    bool have_TAP = false;
+
+int cpc_model=2;
+int cpc_memory=128;
+int cpc_kbl=0;
+int cpc_green=0;
+char drvfB[_MAX_PATH + 1];
 
 int cpc_tapeturbo=1;
 int cpc_tapespeeding=0;
@@ -1234,10 +1259,34 @@ int zip_extract (char *pchZipFile, char *pchFileName, dword dwOffset)
    strncpy(pchFileName, chAppPath, sizeof(chAppPath)-14);
    strcat(pchFileName, "/tmXXXXXX");
    if (mktemp(pchFileName) == NULL) {
-      return ERR_FILE_UNZIP_FAILED;
+	printf("ERROR zipmktemp.\n");
+		strncpy(pchFileName, "/tmp", sizeof(chAppPath)-14);
+		strcat(pchFileName, "/tmXXXXXX");
+		if (mktemp(pchFileName) == NULL) {
+			printf("ERROR zip2 mktemp.\n");
+		      	return ERR_FILE_UNZIP_FAILED;
+   		}
+	//      return ERR_FILE_UNZIP_FAILED;
    }
    if (!(pfileOut = fopen(pchFileName, "wb"))) {
-      return ERR_FILE_UNZIP_FAILED; // couldn't create output file
+	printf("ERROR zip fopen.\n");
+
+	//check main TEMP folder
+		strncpy(pchFileName, "/tmp", sizeof(chAppPath)-14);
+		strcat(pchFileName, "/tmXXXXXX");
+		if (mktemp(pchFileName) == NULL) {
+			printf("ERROR zip2 mktemp.\n");
+		      	return ERR_FILE_UNZIP_FAILED;
+   		}
+   		if (!(pfileOut = fopen(pchFileName, "wb"))) {
+			printf("ERROR zip2 fopen.\n");
+		      	return ERR_FILE_UNZIP_FAILED;
+			}
+
+
+
+	//LOLOLO
+	//      return ERR_FILE_UNZIP_FAILED; // couldn't create output file
    }
    pfileIn = fopen(pchZipFile, "rb"); // open ZIP file for reading
    fseek(pfileIn, dwOffset, SEEK_SET); // move file pointer to beginning of data block
@@ -1272,6 +1321,7 @@ int zip_extract (char *pchZipFile, char *pchFileName, dword dwOffset)
       dwSize -= 16384; // advance to next chunck
    } while ((dwSize > 0) && (iStatus == Z_OK)) ; // loop until done
    if (iStatus != Z_STREAM_END) {
+	printf("ERROR zip iStatus.\n");
       return ERR_FILE_UNZIP_FAILED; // abort on error
    }
    iStatus = inflateEnd(&z); // clean up
@@ -1686,6 +1736,7 @@ int dsk_load (char *pchFileName, t_drive *drive, char chID)
    int iRetCode;
    dword dwTrackSize, track, side, sector, dwSectorSize, dwSectors;
    byte *pbPtr, *pbDataPtr, *pbTempPtr, *pbTrackSizeTable;
+
 
    iRetCode = 0;
    dsk_eject(drive);
@@ -2120,7 +2171,7 @@ int tape_insert (char *pchFileName)
    }
    if (pbBlock != pbTapeImageEnd + 3) {//ERROR DE FIN DE CINTA!!!!!
       tape_eject();
-         printf("Error tape end error: %s \n   Tape block pos=%d , \tImage end=%d\n", pchFileName, pbBlock, pbTapeImageEnd);
+         printf("Error tape end error: %s \n   Tape block pos=%d , \tImage end=%d\n", pchFileName, *pbBlock, *pbTapeImageEnd);
 
       return ERR_TAP_INVALID;
    }
@@ -2406,7 +2457,6 @@ int CPC_DSK_load(char *discpath, char driveID)
 	 zip_info.dwOffset = *(dword *)(pchPtr + (strlen(pchPtr)+1)); // get the offset into the zip archive
 	 if (!zip_extract(path, chFileName, zip_info.dwOffset)) 
 	       {
-
 		switch (driveID)
 		{
 			case 'B':
@@ -2704,6 +2754,7 @@ void vdu_init (bool bolInit)
 	{
 	  case 1:
 	  case 3:
+	  case 4:
 		VDU.hstart = 7; 
       		VDU.hwidth = CPC_visible_scr_width / 8;
       		VDU.vstart = 27;
@@ -2912,7 +2963,7 @@ int emulator_init (void)
          pchRomData = new char [16384]; // allocate 16K
 	
 	//LOAD AMSDOS IF MODEL
-	if (CPC.model>1){
+	if (CPC.model>0){
 		pchRomData = new char [16384]; // allocate 16K
 		memset(pchRomData, 0, 16384); // clear memory
 		memcpy(pchRomData,(unsigned int*)&amsdos_rom[0],16384);
@@ -3431,11 +3482,11 @@ case 15:
 	         break;
 	case 4:  //CRT INTERLACED
 
-               mode_handler[0] = draw16bpp_mode0_CRT;
-               mode_handler[1] = draw16bpp_mode1_CRT;
-               mode_handler[2] = draw16bpp_mode2_CRT;
-               mode_handler[3] = draw16bpp_mode0_CRT;
-               border_handler = draw16bpp_border_CRT;
+               mode_handler[0] = draw16bpp_mode0_CRTI;
+               mode_handler[1] = draw16bpp_mode1_CRTI;
+               mode_handler[2] = draw16bpp_mode2_CRTI;
+               mode_handler[3] = draw16bpp_mode0_CRTI;
+               border_handler = draw16bpp_border_CRTI;
 	         break;
 
 
@@ -3551,7 +3602,6 @@ void video_init_tables (void)
       mode1_table[idx++] = p4;
    }
 }
-
 
 
 int video_set_palette (void)
@@ -3769,7 +3819,7 @@ bitspixels=CPC.scr_fs_bpp;
       return iErrCode;
    }
 
-   if (!(back_surface = SDL_CreateRGBSurface( // create the back buffer
+   if (!(realback_surface = SDL_CreateRGBSurface( // create the back buffer
     SDL_HWSURFACE,
     CPC_scr_width,
     CPC_scr_height*2,
@@ -3782,19 +3832,80 @@ bitspixels=CPC.scr_fs_bpp;
       return ERR_VIDEO_SURFACE;
    }
 
+	back_surface=realback_surface;
+   if (CPC_render_mode==4)
+   {
+   if (!(blend_surface = SDL_CreateRGBSurface( // create the back buffer
+    SDL_HWSURFACE,
+    CPC_scr_width,
+    CPC_scr_height*2,
+    bitspixels,
+    video_surface->format->Rmask,
+    video_surface->format->Gmask,
+    video_surface->format->Bmask,
+    video_surface->format->Amask))) {
+      fprintf(stderr, "Could not allocate back buffer.\n");
+      return ERR_VIDEO_SURFACE;
+   }
+   if (!(int1_surface = SDL_CreateRGBSurface( // create the back buffer
+    SDL_HWSURFACE,
+    CPC_scr_width,
+    CPC_scr_height*2,
+    bitspixels,
+    video_surface->format->Rmask,
+    video_surface->format->Gmask,
+    video_surface->format->Bmask,
+    video_surface->format->Amask))) {
+      fprintf(stderr, "Could not allocate back buffer.\n");
+      return ERR_VIDEO_SURFACE;
+   }
+   if (!(int2_surface = SDL_CreateRGBSurface( // create the back buffer
+    SDL_HWSURFACE,
+    CPC_scr_width,
+    CPC_scr_height*2,
+    bitspixels,
+    video_surface->format->Rmask,
+    video_surface->format->Gmask,
+    video_surface->format->Bmask,
+    video_surface->format->Amask))) {
+      fprintf(stderr, "Could not allocate back buffer.\n");
+      return ERR_VIDEO_SURFACE;
+   }
+  }//if CPC_render_mode
+
    if (SDL_MUSTLOCK(back_surface)) {
       SDL_LockSurface(back_surface);
    }
+      if (CPC_render_mode==4){
+	  if (SDL_MUSTLOCK(blend_surface)) SDL_LockSurface(blend_surface);
+	  if (SDL_MUSTLOCK(int1_surface)) SDL_LockSurface(int1_surface);
+	  if (SDL_MUSTLOCK(int2_surface)) SDL_LockSurface(int2_surface);
+	}
+
    CPC.scr_bps = back_surface->pitch / 4; // rendered screen line length (changing bytes to dwords)
    CPC.scr_base = (dword *)back_surface->pixels; // memory address of back buffer
    if (SDL_MUSTLOCK(back_surface)) {
       SDL_UnlockSurface(back_surface);
    }
 
+      if (CPC_render_mode==4){
+	  if (SDL_MUSTLOCK(blend_surface)) SDL_UnlockSurface(blend_surface);
+	  if (SDL_MUSTLOCK(int1_surface)) SDL_UnlockSurface(int1_surface);
+	  if (SDL_MUSTLOCK(int2_surface)) SDL_UnlockSurface(int2_surface);
+	}
+
+
    video_set_style(); // select rendering style
    vdu_init(true); // initialize the monitor emulation
 
    SDL_FillRect(back_surface, NULL, SDL_MapRGB(back_surface->format, 0, 0, 0)); // clear back buffer
+
+
+   if (CPC_render_mode==4){
+	SDL_FillRect(blend_surface, NULL, SDL_MapRGB(blend_surface->format, 0, 0, 0)); // clear back buffer
+	SDL_FillRect(int1_surface, NULL, SDL_MapRGB(int1_surface->format, 0, 0, 0)); // clear back buffer
+	SDL_FillRect(int2_surface, NULL, SDL_MapRGB(int2_surface->format, 0, 0, 0)); // clear back buffer
+   }
    SDL_FillRect(video_surface, NULL, SDL_MapRGB(video_surface->format, 0, 0, 0)); // clear back buffer
    SDL_ShowCursor(SDL_DISABLE); // hide the mouse cursor
 
@@ -3807,13 +3918,43 @@ bitspixels=CPC.scr_fs_bpp;
 
 void video_shutdown (void)
 {
+	back_surface=realback_surface;
    if (back_surface) {
             if (SDL_MUSTLOCK(back_surface)) 
             {
                   SDL_UnlockSurface(back_surface); // make sure we release any active locks
             }
       SDL_FreeSurface(back_surface); // free the surface we created
+	back_surface=NULL;
    }
+
+   if (blend_surface) {
+            if (SDL_MUSTLOCK(blend_surface)) 
+            {
+                  SDL_UnlockSurface(blend_surface); // make sure we release any active locks
+            }
+      SDL_FreeSurface(blend_surface); // free the surface we created
+	blend_surface=NULL;
+   }
+   if (int1_surface) {
+            if (SDL_MUSTLOCK(int1_surface)) 
+            {
+                  SDL_UnlockSurface(int1_surface); // make sure we release any active locks
+            }
+      SDL_FreeSurface(int1_surface); // free the surface we created
+	int1_surface=NULL;
+   }
+   if (int2_surface) {
+            if (SDL_MUSTLOCK(int2_surface)) 
+            {
+                  SDL_UnlockSurface(int2_surface); // make sure we release any active locks
+            }
+      SDL_FreeSurface(int2_surface); // free the surface we created
+	int2_surface=NULL;
+
+   }
+
+
 //   SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
@@ -3895,12 +4036,12 @@ void loadConfiguration (void)
    strcat(chFileName, "/cap32.cfg");
 
    memset(&CPC, 0, sizeof(CPC));
-   CPC.model = getConfigValueInt(chFileName, "system", "model", 2); // CPC 6128
+   CPC.model = getConfigValueInt(chFileName, "system", "model", cpc_model); // CPC 6128
    if (CPC.model > 2) {
       CPC.model = 2;
    }
    CPC.jumpers = getConfigValueInt(chFileName, "system", "jumpers", 0x1e) & 0x1e; // OEM is Amstrad, video refresh is 50Hz
-   CPC.ram_size = getConfigValueInt(chFileName, "system", "ram_size", 128) & 0x02c0; // 128KB RAM
+   CPC.ram_size = getConfigValueInt(chFileName, "system", "ram_size", cpc_memory) & 0x02c0; // 128KB RAM
    if (CPC.ram_size > 576) {
       CPC.ram_size = 576;
    } else if ((CPC.model == 2) && (CPC.ram_size < 128)) {
@@ -3934,7 +4075,7 @@ void loadConfiguration (void)
    CPC.scr_vsync = getConfigValueInt(chFileName, "video", "scr_vsync", 0) & 1;
    CPC.scr_led = getConfigValueInt(chFileName, "video", "scr_led", 0) & 1;
    CPC.scr_fps = getConfigValueInt(chFileName, "video", "scr_fps", 0) & 1;
-   CPC.scr_tube = getConfigValueInt(chFileName, "video", "scr_tube", 0) & 1;
+   CPC.scr_tube = getConfigValueInt(chFileName, "video", "scr_tube", cpc_green) & 1;
    CPC.scr_intensity = getConfigValueInt(chFileName, "video", "scr_intensity", 10);
    if ((CPC.scr_intensity < 5) || (CPC.scr_intensity > 15)) {
       CPC.scr_intensity = 10;
@@ -3959,7 +4100,7 @@ CPC.scr_window=1;
    }
    CPC.snd_pp_device = getConfigValueInt(chFileName, "sound", "pp_device", 0) & 1;
 
-   CPC.kbd_layout = getConfigValueInt(chFileName, "control", "kbd_layout", 2);
+   CPC.kbd_layout = getConfigValueInt(chFileName, "control", "kbd_layout", cpc_kbl);
    if (CPC.kbd_layout > MAX_KBD_LAYOUTS) {
       CPC.kbd_layout = 0;
    }
@@ -3982,11 +4123,11 @@ CPC.scr_window=1;
    getConfigValueString(chFileName, "file", "drvA_file", CPC.drvA_file, sizeof(CPC.drvA_file)-1, "");
    CPC.drvA_zip = getConfigValueInt(chFileName, "file", "drvA_zip", 0) & 1;
    CPC.drvA_format = getConfigValueInt(chFileName, "file", "drvA_format", DEFAULT_DISK_FORMAT);
-   getConfigValueString(chFileName, "file", "drvB_path", CPC.drvB_path, sizeof(CPC.drvB_path)-1, chPath);
+   getConfigValueString(chFileName, "file", "drvB_path", CPC.drvB_path, sizeof(CPC.drvB_path)-1, "");
    if (CPC.drvB_path[0] == '\0') {
       strcpy(CPC.drvB_path, chPath);
    }
-   getConfigValueString(chFileName, "file", "drvB_file", CPC.drvB_file, sizeof(CPC.drvB_file)-1, "");
+   getConfigValueString(chFileName, "file", "drvB_file", CPC.drvB_file, sizeof(CPC.drvB_file)-1, drvfB);
    CPC.drvB_zip = getConfigValueInt(chFileName, "file", "drvB_zip", 0) & 1;
    CPC.drvB_format = getConfigValueInt(chFileName, "file", "drvB_format", DEFAULT_DISK_FORMAT);
    strncpy(chPath, chAppPath, sizeof(chPath)-7);
@@ -4204,6 +4345,13 @@ void doCleanUp (void)
 
    audio_shutdown();
 
+	if (!CPC.scr_window)
+		{
+		CPC.scr_window=1;
+		video_shutdown();
+		video_init();
+		}
+
    video_shutdown();
 
    SDL_JoystickClose(joystick);  //libera joysticks
@@ -4288,17 +4436,36 @@ void SDL_JoystickReload(int debug)
 ////////////////////////////////////////////////////////////////////////
 
 
-  
+char * strlwr(char * s)
+{
+        char *t = s;
+        if (!s)
+        {
+                return 0;
+        }
+       // int i = 0;
+        while ( *t != '\0' )
+        {
+                if (*t >= 'A' && *t <= 'Z' )
+                {
+                        *t = *t + ('a' - 'A');
+                }
+                t++;
+        }
+        return s;
+}
+
+#include <stdio.h>
+#include <string.h>
 /*
 #include <unistd.h>
-#include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <time.h>
 #include <fcntl.h>
 #include <sys/time.h>
  */
-int main (int argc, char **argv)
+int 
+main (int argc, char **argv)
 {
    dword dwSndDist;
    int iExitCondition;
@@ -4316,23 +4483,127 @@ have_DSK = false;
 have_SNA = false;
 have_TAP = false;
 
+drvfB[0]='\0';
 
    int i;
    int frameskiper = 0;
    bool argvsound = true;
-   bool argvpausescreen = false;
-   bool argvsplash = true;
+   //bool argvpausescreen = false;
 
-        if (argc > 1) argvsplash=false;
 
-        for (i = 1; i < argc; i++)
-        {
-                if (!(strcmp(argv[i], "--nosound"))) argvsound=false;
-                if (!(strcmp(argv[i], "--notapeturbo"))) cpc_tapeturbo=0;
-                if (!(strcmp(argv[i], "--screenpause"))) argvpausescreen=true;
+        if (argc > 1)
+	{
 
-        }
+	  if ((argv[1][0] == '-') &&  (argv[1][1] == '-'))
+	  {
+   		if (!(strcmp(strlwr(argv[1]), "--help")))
+		{
+		printf("======================\nCapriceRPI HELP:\n======================\n" VERSION_STRING " \n" AUTOR_STRING " \n" NOTE_STRING "\n\n");
+		printf("   Usage: %s [DSK,CDT,SNA file] <options>\n",argv[0]);
+		printf("   Options:\n");
+		printf("   --model   464/664/6128     = Set model\n");
+		printf("   --mem     64/128/256/576   = Set memory\n");
+		printf("   --green                    = Set green monitor\n");
+		printf("   --kbl     en/fr/sp         = Set keyboard layout\n");
+		printf("   --drvB    [DSK file]       = Insert [DSK] in B drive\n");
+		printf("   --nosound                  = Disable sound\n");
+		printf("   --notapeturbo              = Disable tape turboload\n");
+//		printf("   --screenpause              = Use pause screen at menu\n");
+		printf("   \n");
+		printf("   \n");
+		exit(0);
+		}
+	  }
 
+		cpc_memory=1; //not-in-range value to detect preceding sets
+        	for (i = 1; i < argc; i++)
+        	{
+
+	         if ((argv[i][0] == '-') &&  (argv[i][1] == '-') && (i<(argc-1))  )
+		 {
+
+                	if (!(strcmp(strlwr(argv[i]), "--model")))
+			{
+	        	        if (!(strcmp(strlwr(argv[i+1]), "464")))
+				{
+				if (cpc_memory==1)cpc_memory=64;
+				cpc_model=0;
+				}
+
+	        	        if (!(strcmp(strlwr(argv[i+1]), "664")))
+				{
+				if (cpc_memory==1)cpc_memory=64;
+				cpc_model=1;
+				}
+
+	                	if (!(strcmp(strlwr(argv[i+1]), "464")))
+				{
+				if (cpc_memory==1)cpc_memory=64;
+				cpc_model=0;
+				}
+			 continue;
+			}
+
+                	if (!(strcmp(strlwr(argv[i]), "--kbl")))
+	        	 {
+				if (!(strcmp(strlwr(argv[i+1]), "en")))
+				{
+				cpc_kbl=0;
+				}
+
+	          		if (!(strcmp(strlwr(argv[i+1]), "fr")))
+				{
+				cpc_kbl=1;
+				}
+
+				if (!(strcmp(strlwr(argv[i+1]), "sp")))
+				{
+				cpc_kbl=2;
+				}
+			continue;
+			}
+
+
+                	if (!(strcmp(strlwr(argv[i]), "--mem")))
+			{
+	        	        if (!(strcmp(strlwr(argv[i+1]), "576")))
+				{
+				cpc_memory=576;
+				}
+
+	        	        if (!(strcmp(strlwr(argv[i+1]), "256")))
+				{
+				cpc_memory=256;
+				}
+
+	                	if (!(strcmp(strlwr(argv[i+1]), "128")))
+				{
+				cpc_memory=128;
+				}
+	                	if (!(strcmp(strlwr(argv[i+1]), "64")))
+				{
+				cpc_memory=64;
+				}
+			continue;
+			}
+                	if (!(strcmp(strlwr(argv[i]), "--drvb"))) 
+				{
+				strcpy(drvfB,argv[i+1]);
+				continue;
+				}
+		   }
+			//NO PARAM OPTIONS
+		  if ((argv[i][0] == '-') &&  (argv[i][1] == '-') )
+		  {
+                	if (!(strcmp(strlwr(argv[i]), "--green"))) cpc_green=1;
+                	if (!(strcmp(strlwr(argv[i]), "--nosound"))) argvsound=false;
+                	if (!(strcmp(strlwr(argv[i]), "--notapeturbo"))) cpc_tapeturbo=0;
+//                	if (!(strcmp(strlwr(argv[i]), "--screenpause"))) argvpausescreen=true;
+		 }
+        	}
+	}
+
+if (cpc_memory==1) cpc_memory=128; //No memory setting, set default
 
 
 	//fprintf(stdout, "Arguments: %d %d\n", argvgp2xmenu, argvsound);
@@ -4402,7 +4673,7 @@ have_TAP = false;
    CPC_render_msg_delay=0;  //no initial renderer advice
 
    GUI_load();
-   intro_cap(argvsplash);
+
    if (audio_init()) {
       fprintf(stderr, "audio_init() failed. Disabling sound.\n");
       CPC.snd_enabled = 0; // disable sound emulation
@@ -4442,19 +4713,20 @@ TESTING*/
 
 //LOAD FROM COMMAND LINE
    memset(&driveA, 0, sizeof(t_drive)); // clear disk drive A data structure
-
-   for (int i = 1; i < argc; i++) { // loop for all command line arguments
-      int length = strlen(argv[i]);
+     if (argc>1){
+//   for (int i = 1; i < argc; i++) { // loop for all command line arguments
+      int length = strlen(argv[1]);
       if (length > 5) { // minumum for a valid filename
          char path[_MAX_PATH + 1];
          char extension[5];
 
-         if (argv[i][0] == '"') { // argument passed with quotes?
+         if (argv[0][0] == '"') { // argument passed with quotes?
             length -= 2;
-            strncpy(path, &argv[i][1], length); // strip the quotes
+            strncpy(path, &argv[1][1], length); // strip the quotes
          } else {
-            strncpy(path, &argv[i][0], sizeof(path)-1); // take it as is
+            strncpy(path, &argv[1][0], sizeof(path)-1); // take it as is
          }
+
 
          int pos = length - 4;
          if (pos > 0) 
@@ -4468,10 +4740,11 @@ TESTING*/
 		{
                  zip_info.pchZipFile = path;
                  zip_info.pchExtension = ".dsk.sna.cdt.voc";
-                 if (zip_dir(&zip_info))
+                 if (!(zip_dir(&zip_info)))
+                 /*if (zip_dir(&zip_info))
 			{
                   	continue; // error or nothing relevant found
-               		} else 
+               		} else */
 			{
                   	strncpy(file_name, zip_info.pchFileNames, sizeof(file_name)-1); // name of the 1st file in the archive
                   	pos = strlen(file_name) - 4;
@@ -4509,6 +4782,11 @@ TESTING*/
 	}//POS
   }//length>5
 }//argc
+
+
+if (!(have_DSK || have_TAP || have_SNA)) intro_cap(1);
+ 
+
 
 //LOAD FROM DEFAULT SETTINGS
 
@@ -4600,7 +4878,7 @@ else
 			switch (event.jbutton.button)  	
 				{
 				case SDL_JoyFire4:
-					icomenu_vis(argvpausescreen);
+					icomenu_vis(false);
 					break;
 				case SDL_JoyFire6:
 					CPC.scr_fps=!(CPC.scr_fps);
@@ -4725,7 +5003,7 @@ else
 
 
                         case CAP32_OPTIONS: //F8
-				icomenu_vis(argvpausescreen);
+				icomenu_vis(false);
 				break;
 
                         case CAP32_EXIT:  //F10
@@ -4735,9 +5013,26 @@ else
 			case SDLK_F11:	//Change draw routines
 				if (dwXScale>1)
 				{
+                		 	audio_pause();
+                		 	SDL_Delay(20);
+					video_shutdown();
 					CPC_render_mode++;
 					if (CPC_render_mode>CPC_max_render_mode) CPC_render_mode=0;
-					   video_set_style();
+					   //video_set_style();
+					   video_init();
+					if (CPC_render_mode==4)
+					{
+					if (!CPC_even_frame)
+						{
+						back_surface=int1_surface;
+						}else{
+						back_surface=int2_surface;
+						}
+					}else{
+						back_surface=realback_surface;
+					}
+
+		                       audio_resume();
                              	}
 				break;
 
@@ -4883,13 +5178,25 @@ else
             dwTicksTarget = dwTicks + dwTicksOffset; // prep counter for the next run
          }
 
+         if (iExitCondition == EC_FRAME_COMPLETE) { // did the last call blit the video buffer?
+		if (CPC_render_mode==4)
+		{
+		if (!CPC_even_frame)
+			{
+			back_surface=int1_surface;
+			}else{
+			back_surface=int2_surface;
+			}
+
+		}else{
+			back_surface=realback_surface;
+		}
+            CPC.scr_base = (dword *)back_surface->pixels; // begin drawing the next frame
+	}
          if (SDL_MUSTLOCK(back_surface)) {
             if (SDL_LockSurface(back_surface) < 0) { // lock the video buffer
                continue; // skip the emulation if we can't get a lock
             }
-         }
-         if (iExitCondition == EC_FRAME_COMPLETE) { // did the last call blit the video buffer?
-            CPC.scr_base = (dword *)back_surface->pixels; // begin drawing the next frame
          }
 
          iExitCondition = z80_execute(); // run the emulation until an exit condition is met
@@ -4922,7 +5229,6 @@ else
                                {
                                                    if (cpc_tapespeeding <1)
                                                    {
-                                                 
                                                    SDL_BlitSurface(back_surface, &back_rect, video_surface, &video_rect);
                                                    //        #ifndef GP2X
                                                    SDL_UpdateRect(video_surface, 0, 0,0,0); 
