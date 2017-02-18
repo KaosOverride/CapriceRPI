@@ -4490,7 +4490,6 @@ drvfB[0]='\0';
    bool argvsound = true;
    //bool argvpausescreen = false;
 
-
         if (argc > 1)
 	{
 
@@ -4603,6 +4602,7 @@ drvfB[0]='\0';
         	}
 	}
 
+
 if (cpc_memory==1) cpc_memory=128; //No memory setting, set default
 
 
@@ -4713,18 +4713,18 @@ TESTING*/
 
 //LOAD FROM COMMAND LINE
    memset(&driveA, 0, sizeof(t_drive)); // clear disk drive A data structure
-     if (argc>1){
-//   for (int i = 1; i < argc; i++) { // loop for all command line arguments
-      int length = strlen(argv[1]);
+//     if (argc>1){
+   for (int i = 1; i < argc; i++) { // loop for all command line arguments
+      int length = strlen(argv[i]);
       if (length > 5) { // minumum for a valid filename
          char path[_MAX_PATH + 1];
          char extension[5];
 
          if (argv[0][0] == '"') { // argument passed with quotes?
             length -= 2;
-            strncpy(path, &argv[1][1], length); // strip the quotes
+            strncpy(path, &argv[i][1], length); // strip the quotes
          } else {
-            strncpy(path, &argv[1][0], sizeof(path)-1); // take it as is
+            strncpy(path, &argv[i][0], sizeof(path)-1); // take it as is
          }
 
 
@@ -4740,11 +4740,11 @@ TESTING*/
 		{
                  zip_info.pchZipFile = path;
                  zip_info.pchExtension = ".dsk.sna.cdt.voc";
-                 if (!(zip_dir(&zip_info)))
-                 /*if (zip_dir(&zip_info))
+                 //if (!(zip_dir(&zip_info)))
+                 if (zip_dir(&zip_info))
 			{
                   	continue; // error or nothing relevant found
-               		} else */
+               		} else
 			{
                   	strncpy(file_name, zip_info.pchFileNames, sizeof(file_name)-1); // name of the 1st file in the archive
                   	pos = strlen(file_name) - 4;
