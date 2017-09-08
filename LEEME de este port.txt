@@ -1,4 +1,4 @@
-Caprice RPI2 V1.2 - Release - Adapted/ported by KaosOverride 2015
+CapriceRPI V1.3b - Release - Adapted/ported by KaosOverride 2017
 (Caprice32 4.1.0 for Raspberry PI)
 
 Caprice32 - Amstrad CPC Emulator
@@ -34,13 +34,27 @@ Linea de comandos:
 ==================
    Uso: CapriceRPI [DSK,CDT,SNA] <opciones>
 
-   --model   464/664/6128     = Cambiar modelo
-   --mem     64/128/256/576   = Cambiar memoria
-   --green                    = Activar pantalla verde
-   --kbl     en/fr/sp         = Asignar distribucion de teclado
-   --drvB    [DSK file]       = Insertar [DSK] en unidad B
-   --nosound                  = Desactivar sonido
-   --notapeturbo              = Desactivar carga turbo cintas
+   --model   464/664/6128/464D  = Cambiar modelo
+   --mem     64/128/256/576     = Cambiar memoria
+   --green                      = Activar pantalla verde
+   --kbl     en/fr/sp           = Asignar distribucion de teclado
+   --drvB    [DSK file]         = Insertar [DSK] en unidad B
+   --nosound                    = Desactivar sonido
+   --notapeturbo                = Desactivar carga turbo cintas
+   --noautorun                  = Desactivar autorun
+   --noborder                   = Desactivar borde
+   --showinfo                   = Mostrar info
+   --video 0-3                  = Modo video inicial
+                                 0 BajaRes Sin Borde
+                                 1 BajaRes Con Borde
+                                 2 AltaRes Sin Borde
+                                 3 AltaRes Con Borde
+   --render 0-3                 = Modo renderizado inicial (Solo AltaRes)
+                                 0 Por defecto progresivo
+                                 1 Scanlines
+                                 2 Entrelazado
+                                 3 Emulacion sucia de CRT
+
 _____________________________________________________________________________________________________
 
 Emulacion principal
@@ -110,6 +124,11 @@ ________________________________________________________________________________
 Historial de versiones
 ======================
 
+V1.3c Command Line Fun Release Vol 2
+====
+-Soporte de MAS nuevas opciones en linea de comandos.
+-Añadido el modelo de CPC 464 + Floppy Disc Drive
+
 V1.3b Command Line Fun Release
 ====
 -Arreglado el soporte de ZIPs en carpetas de solo lectura.
@@ -175,3 +194,14 @@ V0.01 ALPHA - GP2x W.I.P 6 fast port
 -Teclado virtual no funcional-incompleto
 
 
+======================
+CapriceRPI HELP:
+======================
+ V1.3c (CaPriCe32 v4.1.0) Release 
+ KaosOverride - 2017 
+ Caprice for RPI!
+
+   Usage: ./capriceRPI [DSK,CDT,SNA file] <options>
+   Options:
+   
+   

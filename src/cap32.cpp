@@ -498,6 +498,12 @@ unsigned char ToToJoy4;
    bool have_TAP = false;
 
 int cpc_model=2;
+int cpc_forceamsdos=0;
+int cpc_borderless=0;
+int cpc_noautorun=0;
+int cpc_initialvideo=0;
+int cpc_initialrender=0;
+int cpc_showinfo=0;
 int cpc_memory=128;
 int cpc_kbl=0;
 int cpc_green=0;
@@ -2963,7 +2969,7 @@ int emulator_init (void)
          pchRomData = new char [16384]; // allocate 16K
 	
 	//LOAD AMSDOS IF MODEL
-	if (CPC.model>0){
+	if ((CPC.model>0) || (cpc_forceamsdos == 1)){
 		pchRomData = new char [16384]; // allocate 16K
 		memset(pchRomData, 0, 16384); // clear memory
 		memcpy(pchRomData,(unsigned int*)&amsdos_rom[0],16384);
@@ -3154,8 +3160,57 @@ int audio_align_samples (int given)
    return actual; // return the closest match as 2^n
 }
 
-/*oRIGINAL CAPRICE 4.1.0
 
+int audio_init (void)
+{
+   SDL_AudioSpec *desired, *obtained;
+
+   if (!CPC.snd_enabled) {
+      return 0;
+   }
+
+   desired = (SDL_AudioSpec *)malloc(sizeof(SDL_AudioSpec));
+   obtained = (SDL_AudioSpec *)malloc(sizeof(SDL_AudioSpec));
+
+   desired->freq = freq_table[CPC.snd_playback_rate];
+   desired->format = CPC.snd_bits ? AUDIO_S16LSB : AUDIO_S8;
+   desired->channels = CPC.snd_stereo+1;
+   desired->samples = audio_align_samples(desired->freq / 50); // desired is 20ms at the given frequency
+   desired->callback = audio_update;
+   desired->userdata = NULL;
+
+   if (SDL_OpenAudio(desired, obtained) < 0) {
+      fprintf(stderr, "Could not open audio: %s\n", SDL_GetError());
+      return 1;
+   }
+
+   free(desired);
+   audio_spec = obtained;
+
+   CPC.snd_buffersize = audio_spec->size; // size is samples * channels * bytes per sample (1 or 2)
+   pbSndBuffer = (byte *)malloc(CPC.snd_buffersize*12); // allocate a ring buffer with 10 segments
+   pbSndBufferEnd = pbSndBuffer + (CPC.snd_buffersize*12);
+   pbSndStream = pbSndBuffer; // put the play cursor at the start
+   memset(pbSndBuffer, 0, CPC.snd_buffersize*12);
+   CPC.snd_bufferptr = pbSndBuffer + (CPC.snd_buffersize*6); // init write cursor
+
+   dwSndMinSafeDist = CPC.snd_buffersize*2; // the closest together the cursors may be
+   dwSndMaxSafeDist = CPC.snd_buffersize*4; // the farthest apart the cursors may be
+
+   InitAY();
+
+   for (int n = 0; n < 16; n++) {
+      SetAYRegister(n, PSG.RegisterAY.Index[n]); // init sound emulation with valid values
+   }
+
+   return 0;
+}
+
+
+
+
+//ORIGINAL CAPRICE 4.1.0
+/*
 int audio_init (void)
 {
    SDL_AudioSpec *desired, *obtained;
@@ -3201,12 +3256,11 @@ int audio_init (void)
    return 0;
 }
 
+
 */
 
-
-
-// TESTING AUDIOINIT
-
+//RPI AUDIO INIT// TESTING AUDIOINIT
+/*
 int audio_init (void)
 {
    SDL_AudioSpec *desired, *obtained;
@@ -3251,7 +3305,7 @@ int audio_init (void)
 
    return 0;
 }
-
+*/
 
 /*  PROPOSED CAPRICEGP2X audio_init
 
@@ -4074,7 +4128,7 @@ void loadConfiguration (void)
 //   }
    CPC.scr_vsync = getConfigValueInt(chFileName, "video", "scr_vsync", 0) & 1;
    CPC.scr_led = getConfigValueInt(chFileName, "video", "scr_led", 0) & 1;
-   CPC.scr_fps = getConfigValueInt(chFileName, "video", "scr_fps", 0) & 1;
+   CPC.scr_fps = getConfigValueInt(chFileName, "video", "scr_fps", 0) & 1; 
    CPC.scr_tube = getConfigValueInt(chFileName, "video", "scr_tube", cpc_green) & 1;
    CPC.scr_intensity = getConfigValueInt(chFileName, "video", "scr_intensity", 10);
    if ((CPC.scr_intensity < 5) || (CPC.scr_intensity > 15)) {
@@ -4489,7 +4543,9 @@ drvfB[0]='\0';
    int frameskiper = 0;
    bool argvsound = true;
    //bool argvpausescreen = false;
-
+   cpc_showinfo=0; // 0 for "no action"
+   cpc_initialvideo=0; // 0 for "no action"
+   cpc_initialrender=0; // 0 for "no action"
         if (argc > 1)
 	{
 
@@ -4500,13 +4556,30 @@ drvfB[0]='\0';
 		printf("======================\nCapriceRPI HELP:\n======================\n" VERSION_STRING " \n" AUTOR_STRING " \n" NOTE_STRING "\n\n");
 		printf("   Usage: %s [DSK,CDT,SNA file] <options>\n",argv[0]);
 		printf("   Options:\n");
-		printf("   --model   464/664/6128     = Set model\n");
-		printf("   --mem     64/128/256/576   = Set memory\n");
-		printf("   --green                    = Set green monitor\n");
-		printf("   --kbl     en/fr/sp         = Set keyboard layout\n");
-		printf("   --drvB    [DSK file]       = Insert [DSK] in B drive\n");
-		printf("   --nosound                  = Disable sound\n");
-		printf("   --notapeturbo              = Disable tape turboload\n");
+		printf("   --model   464/664/6128/464D = Set model\n");
+		printf("   --mem     64/128/256/576    = Set memory\n");
+		printf("   --green                     = Set green monitor\n");
+		printf("   --kbl     en/fr/sp          = Set keyboard layout\n");
+		printf("   --drvB    [DSK file]        = Insert [DSK] in B drive\n");
+		printf("   --nosound                   = Disable sound\n");
+		printf("   --notapeturbo               = Disable tape turboload\n");
+		printf("   --noautorun                 = Disable autorun\n");
+		printf("   --noborder                  = Disable border\n");
+		printf("   --showinfo                  = Show text info\n");
+		printf("   --video 0-3                 = Initial video mode\n");
+		printf("                                 0 LowRes Borderless\n");
+		printf("                                 1 LowRes Border\n");
+		printf("                                 2 HiRes Borderless\n");
+		printf("                                 3 HiRes Border\n");
+		printf("   --render 0-3                = Initial render mode (Only HiRes)\n");
+		printf("                                 0 Default progressive\n");
+		printf("                                 1 Scanlines\n");
+		printf("                                 2 Interlaced\n");
+		printf("                                 3 CRT dirty emulation\n");
+//		printf("   --video 0-3                = Initial video mode\n");
+//		printf("   --screenpause              = Use pause screen at menu\n");
+//		printf("   --screenpause              = Use pause screen at menu\n");
+//		printf("   --screenpause              = Use pause screen at menu\n");
 //		printf("   --screenpause              = Use pause screen at menu\n");
 		printf("   \n");
 		printf("   \n");
@@ -4520,13 +4593,20 @@ drvfB[0]='\0';
 
 	         if ((argv[i][0] == '-') &&  (argv[i][1] == '-') && (i<(argc-1))  )
 		 {
-
                 	if (!(strcmp(strlwr(argv[i]), "--model")))
 			{
+				cpc_forceamsdos=0;
 	        	        if (!(strcmp(strlwr(argv[i+1]), "464")))
 				{
 				if (cpc_memory==1)cpc_memory=64;
 				cpc_model=0;
+				}
+
+	        	        if (!(strcmp(strlwr(argv[i+1]), "464d")))
+				{
+				if (cpc_memory==1)cpc_memory=64;
+				cpc_model=0;
+				cpc_forceamsdos=1;
 				}
 
 	        	        if (!(strcmp(strlwr(argv[i+1]), "664")))
@@ -4535,11 +4615,12 @@ drvfB[0]='\0';
 				cpc_model=1;
 				}
 
-	                	if (!(strcmp(strlwr(argv[i+1]), "464")))
+	        	        if (!(strcmp(strlwr(argv[i+1]), "6128")))
 				{
-				if (cpc_memory==1)cpc_memory=64;
-				cpc_model=0;
+				if (cpc_memory==1)cpc_memory=128;
+				cpc_model=2;
 				}
+
 			 continue;
 			}
 
@@ -4585,18 +4666,40 @@ drvfB[0]='\0';
 				}
 			continue;
 			}
+
                 	if (!(strcmp(strlwr(argv[i]), "--drvb"))) 
 				{
 				strcpy(drvfB,argv[i+1]);
 				continue;
 				}
+
+                	if (!(strcmp(strlwr(argv[i]), "--video")))
+				{  //
+	                	if (!(strcmp(strlwr(argv[i+1]), "0"))) cpc_initialvideo=1;
+	                	if (!(strcmp(strlwr(argv[i+1]), "1"))) cpc_initialvideo=2;
+	                	if (!(strcmp(strlwr(argv[i+1]), "2"))) cpc_initialvideo=3;
+	                	if (!(strcmp(strlwr(argv[i+1]), "3"))) cpc_initialvideo=4;
+				}
+
+                	if (!(strcmp(strlwr(argv[i]), "--render")))
+				{
+	                	if (!(strcmp(strlwr(argv[i+1]), "0"))) cpc_initialrender=0;
+	                	if (!(strcmp(strlwr(argv[i+1]), "1"))) cpc_initialrender=1;
+	                	if (!(strcmp(strlwr(argv[i+1]), "2"))) cpc_initialrender=2;
+	                	if (!(strcmp(strlwr(argv[i+1]), "3"))) cpc_initialrender=3;
+				}
+
 		   }
+
 			//NO PARAM OPTIONS
 		  if ((argv[i][0] == '-') &&  (argv[i][1] == '-') )
 		  {
                 	if (!(strcmp(strlwr(argv[i]), "--green"))) cpc_green=1;
                 	if (!(strcmp(strlwr(argv[i]), "--nosound"))) argvsound=false;
                 	if (!(strcmp(strlwr(argv[i]), "--notapeturbo"))) cpc_tapeturbo=0;
+                	if (!(strcmp(strlwr(argv[i]), "--noborder"))) cpc_borderless=1;
+                	if (!(strcmp(strlwr(argv[i]), "--noautorun"))) cpc_noautorun=1;
+                	if (!(strcmp(strlwr(argv[i]), "--showinfo"))) cpc_showinfo=1;
 //                	if (!(strcmp(strlwr(argv[i]), "--screenpause"))) argvpausescreen=true;
 		 }
         	}
@@ -4634,6 +4737,8 @@ if (cpc_memory==1) cpc_memory=128; //No memory setting, set default
    loadConfiguration(); // retrieve the emulator configuration
   
 
+ if (cpc_showinfo) CPC.scr_fps=1;
+
  if (CPC.printer) {
       if (!printer_start()) { // start capturing printer output, if enabled
          CPC.printer = 0;
@@ -4653,12 +4758,24 @@ if (cpc_memory==1) cpc_memory=128; //No memory setting, set default
    if (WhichPI()>128)
 	{
 	CPC_max_vid_mode=3;
+	if (cpc_initialvideo>0)
+	vid_index=cpc_initialvideo-1;
+	else
 	vid_index=3;
+
+	if ((cpc_initialrender>=0) && (cpc_initialrender <=CPC_max_render_mode))
+	CPC_render_mode=cpc_initialrender;
+
 	}else
 	{
 	CPC_max_vid_mode=1;
+	if ((cpc_initialvideo>0)&&(cpc_initialvideo<2))
+	vid_index=cpc_initialvideo-1;
+	else
 	vid_index=0;
 	} 
+
+	if ((cpc_borderless)  && ((vid_index==1) || (vid_index==3)) ) vid_index--;
 
   //vid_index=2;
    video_reconfig(vid_index);
@@ -4810,6 +4927,14 @@ if (!(have_DSK || have_TAP || have_SNA)) intro_cap(1);
 
 // ----------------------------------------------------------------------------
 
+if (cpc_noautorun)
+	{
+	BootDiskRunCount=0;
+	BootTapeRunCount=0;
+	}
+
+// ----------------------------------------------------------------------------
+
 
 
    dwTicksOffset = (int)(20.0 / (double)((CPC.speed * 25) / 100.0));
@@ -4946,6 +5071,7 @@ else
                            SDL_Delay(20);
                            video_shutdown();
 			   vid_index++;
+			   if ((cpc_borderless)  && ((vid_index==1) || (vid_index==3)) ) vid_index++;
 			   if (vid_index>CPC_max_vid_mode) vid_index=0;
 			   //CPC_render_mode=0;
                            video_reconfig(vid_index);
@@ -4982,6 +5108,7 @@ else
 			case SDLK_F5:	//Type RUN" for tape
 
                              AutoType_SetString("|TAPE\nRUN\"\n  ", FALSE);
+                                  CPC.tape_play_button = 0x10;
 
                            break;
 
@@ -5209,7 +5336,7 @@ else
 		{
 
 		   if ((CPC_render_msg_delay>0) || (CPC.scr_fps)){
- 			print((dword *)back_surface->pixels + (CPC.scr_line_offs*8)+15+200, CPC_render_mode_desc[CPC_render_mode], true); // display the frames per second counter
+ 			print((dword *)back_surface->pixels + (CPC.scr_line_offs*8)+15+260, CPC_render_mode_desc[CPC_render_mode], true); // display the frames per second counter
 			CPC_render_msg_delay--;
 		   }
 		}

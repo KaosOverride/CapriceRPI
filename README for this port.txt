@@ -1,4 +1,4 @@
-Caprice RPI2 V1.3 - Release - Adapted/ported by KaosOverride 2015
+Caprice RPI2 V1.3c - Release - Adapted/ported by KaosOverride 2017
 (Caprice32 4.1.0 for Raspberry PI)
 
 Caprice32 - Amstrad CPC Emulator
@@ -34,13 +34,27 @@ Command Line
 
    Usage: CapriceRPI [DSK,CDT,SNA file] <options>
    Options:
-   --model   464/664/6128     = Set model
-   --mem     64/128/256/576   = Set memory
-   --green                    = Set green monitor
-   --kbl     en/fr/sp         = Set keyboard layout
-   --drvB    [DSK file]       = Insert [DSK] in B drive
-   --nosound                  = Disable sound
-   --notapeturbo              = Disable tape turboload
+   --model   464/664/6128/464D = Set model
+   --mem     64/128/256/576    = Set memory
+   --green                     = Set green monitor
+   --kbl     en/fr/sp          = Set keyboard layout
+   --drvB    [DSK file]        = Insert [DSK] in B drive
+   --nosound                   = Disable sound
+   --notapeturbo               = Disable tape turboload
+   --noautorun                 = Disable autorun
+   --noborder                  = Disable border
+   --showinfo                  = Show info
+   --video 0-3                 = Initial video mode
+                                 0 LowRes Borderless
+                                 1 LowRes Border
+                                 2 HiRes Borderless
+                                 3 HiRes Border
+   --render 0-3                = Initial render mode (Only HiRes)
+                                 0 Default progressive
+                                 1 Scanlines
+                                 2 Interlaced
+                                 3 CRT dirty emulation
+
       
 _____________________________________________________________________________________________________
 
@@ -110,6 +124,11 @@ ________________________________________________________________________________
 
 Release history
 ================
+
+V1.3c Command Line Fun Release Vol 2
+====
+-Added MUCH more command line options for emulator setings.
+-Added new model 464 + Floppy Disc Drive
 
 V1.3b Command Line Fun Release
 ====

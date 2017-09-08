@@ -44,6 +44,7 @@ extern bool have_SNA;
 extern bool have_TAP;
 
 extern byte *pbTapeImage;
+extern int cpc_borderless;
 extern int cpc_tapeturbo;
 extern int cpc_tapespeeding;
 extern int cpc_dskautorun;
@@ -2034,6 +2035,7 @@ int menu_eval_screen (int cur_menupos){
 
                   case 2:  //3 vid mode
 			option_menuscreen[3]++;
+			if ((cpc_borderless)  && ((option_menuscreen[3]==1) || (option_menuscreen[3]==3)) ) 			option_menuscreen[3]++;
 			if (option_menuscreen[3] > CPC_max_vid_mode ) option_menuscreen[3]=0;
 			break;
 
