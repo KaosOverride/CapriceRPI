@@ -54,7 +54,12 @@ Linea de comandos:
                                  1 Scanlines
                                  2 Entrelazado
                                  3 Emulacion sucia de CRT
-
+   --parados                   = Carga Parados externo
+                                 (directorio rom donde el ejecutable)
+     modificadores opcionales    1 A:3inch   B:3.5inch
+                                 2 A:3.5inch B:3.5inch
+                                 3 A:3.5inch B:3inch
+                                 4 A:3inch   B:3inch
 _____________________________________________________________________________________________________
 
 Emulacion principal
@@ -123,6 +128,12 @@ ________________________________________________________________________________
 
 Historial de versiones
 ======================
+
+V1.3d Soporte Parados
+====
+-Soporte de ROM Parados en linea de comandos.
+ Colocar fichero parados.rom en el directorio ./rom
+ en la ubicacion del ejecutable.
 
 V1.3c Command Line Fun Release Vol 2
 ====
@@ -193,15 +204,3 @@ V0.01 ALPHA - GP2x W.I.P 6 fast port
 -Ejecutable monolitico portable. Sin dependencias de ficheros externos (ROMs, etc)
 -Teclado virtual no funcional-incompleto
 
-
-======================
-CapriceRPI HELP:
-======================
- V1.3c (CaPriCe32 v4.1.0) Release 
- KaosOverride - 2017 
- Caprice for RPI!
-
-   Usage: ./capriceRPI [DSK,CDT,SNA file] <options>
-   Options:
-   
-   

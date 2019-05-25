@@ -499,6 +499,7 @@ unsigned char ToToJoy4;
 
 int cpc_model=2;
 int cpc_forceamsdos=0;
+int cpc_paradosmode=0;
 int cpc_borderless=0;
 int cpc_noautorun=0;
 int cpc_initialvideo=0;
@@ -1343,7 +1344,7 @@ int snapshot_load (char *pchFileName)
 {
    int n;
    dword dwSnapSize, dwModel;
-//   char chPath[_MAX_PATH + 1];
+   //char chPath[_MAX_PATH + 1];
    byte val;
    reg_pair port;
    t_SNA_header sh;
@@ -2946,8 +2947,8 @@ void emulator_reset (bool bolMF2Reset)
 
 int emulator_init (void)
 {
-   int iErr;//, iRomNum;
-   //char chPath[_MAX_PATH + 1];
+   int iErr, iRomNum;
+   char chPath[_MAX_PATH + 1];
    char *pchRomData;
 
    pbGPBuffer = new byte [128*1024]; // attempt to allocate the general purpose buffer
@@ -2966,7 +2967,7 @@ int emulator_init (void)
   if ((iErr = emulator_patch_ROM())) {  // LOAD FIRMWARE OF MODEL
       	return iErr;
    	}
-         pchRomData = new char [16384]; // allocate 16K
+//         pchRomData = new char [16384]; // allocate 16K
 	
 	//LOAD AMSDOS IF MODEL
 	if ((CPC.model>0) || (cpc_forceamsdos == 1)){
@@ -2977,8 +2978,11 @@ int emulator_init (void)
 
 		}
 
+	//LOAD EXTERNAL PARADOS IF FOUND
+	if (cpc_paradosmode > 0){
+		strncpy(CPC.rom_file[7],"parados.rom",11);
+		}
 
-/*
    for (iRomNum = 2; iRomNum < 16; iRomNum++) { // loop for ROMs 2-15
       if (CPC.rom_file[iRomNum][0]) { // is a ROM image specified for this slot?
          pchRomData = new char [16384]; // allocate 16K
@@ -2999,7 +3003,7 @@ int emulator_init (void)
                } else { // not a valid ROM file
                   fprintf(stderr, "ERROR: %s is not a CPC ROM file - clearing ROM slot %d.\n", CPC.rom_file[iRomNum], iRomNum);
                   delete [] pchRomData; // free memory on error
-                  CPC.rom_file[iRomNum][0] = 0;
+                   CPC.rom_file[iRomNum][0] = 0;
                }
             }
             fclose(pfileObject);
@@ -3012,6 +3016,45 @@ int emulator_init (void)
    }
 
 
+
+	//PATCH PARADOS MODE
+	if (cpc_paradosmode > 0){
+	int parapatch,paracheck;
+		parapatch=memmap_ROM[7][16382];
+		paracheck=memmap_ROM[7][16383];
+                //  printf("PARADOS CFG: %i CHK: %i\n", parapatch,paracheck);
+
+		switch (cpc_paradosmode)
+			{
+			case 1:
+				parapatch=3;
+				paracheck=0;
+				break;
+			case 2:
+				parapatch=51;
+				paracheck=0;
+				break;
+			case 3:
+				parapatch=48;
+				paracheck=0;
+				break;
+			case 4:
+				parapatch=0;
+				paracheck=0;
+				break;
+			default:
+				break;
+			}
+
+                  printf("PARADOS CFG: %i CHK: %i\n", parapatch,paracheck);
+		memmap_ROM[7][16382]=parapatch;
+		memmap_ROM[7][16383]=paracheck;
+
+		}
+
+
+
+/*
    if (CPC.mf2) { // Multiface 2 enabled?
       if (!pbMF2ROM) {
          pbMF2ROM = new byte [16384]; // allocate the space needed for the Multiface 2: 8K ROM + 8K RAM
@@ -4306,11 +4349,11 @@ CPC.scr_window=1;
    
       switch (iRomNum)       // TEMPORAL PATCH TO FORCE SOME ROMS TO LOAD
                       {
-                 case 7:
+/*                 case 7:
                           getConfigValueString(chFileName, "rom", chRomId, CPC.rom_file[iRomNum], sizeof(CPC.rom_file[iRomNum])-1, "amsdos.rom");
                           break;
 
-/*                 case 4:
+                 case 4:
                           getConfigValueString(chFileName, "rom", chRomId, CPC.rom_file[iRomNum], sizeof(CPC.rom_file[iRomNum])-1, "des1.rom");
                           break;
 
@@ -4330,12 +4373,12 @@ CPC.scr_window=1;
       strcpy(CPC.rom_path, chPath);
       }
    
-   if ((pfileObject = fopen(chFileName, "rt")) == NULL) {
+/*   if ((pfileObject = fopen(chFileName, "rt")) == NULL) {
       strcpy(CPC.rom_file[7], "amsdos.rom"); // insert AMSDOS in slot 7 if the config file does not exist yet
    } else {
       fclose(pfileObject);
    }
-   
+*/   
    
    getConfigValueString(chFileName, "rom", "rom_mf2", CPC.rom_mf2, sizeof(CPC.rom_mf2)-1, "");
    
@@ -4546,6 +4589,7 @@ drvfB[0]='\0';
    cpc_showinfo=0; // 0 for "no action"
    cpc_initialvideo=0; // 0 for "no action"
    cpc_initialrender=0; // 0 for "no action"
+   cpc_paradosmode=0;
         if (argc > 1)
 	{
 
@@ -4576,6 +4620,13 @@ drvfB[0]='\0';
 		printf("                                 1 Scanlines\n");
 		printf("                                 2 Interlaced\n");
 		printf("                                 3 CRT dirty emulation\n");
+		printf("   --parados                   = Load external Parados\n");
+		printf("                                 (Same dir as exeutable)\n");
+		printf("     Modifiers                   1 A:3inch   B:3.5inch\n");
+		printf("                                 2 A:3.5inch B:3.5inch\n");
+		printf("                                 3 A:3.5inch B:3inch\n");
+		printf("                                 4 A:3inch   B:3inch\n");
+
 //		printf("   --video 0-3                = Initial video mode\n");
 //		printf("   --screenpause              = Use pause screen at menu\n");
 //		printf("   --screenpause              = Use pause screen at menu\n");
@@ -4590,6 +4641,22 @@ drvfB[0]='\0';
 		cpc_memory=1; //not-in-range value to detect preceding sets
         	for (i = 1; i < argc; i++)
         	{
+
+			//NO PARAM OPTIONS
+		  if ((argv[i][0] == '-') &&  (argv[i][1] == '-') )
+		  {
+                	if (!(strcmp(strlwr(argv[i]), "--green"))) cpc_green=1;
+                	if (!(strcmp(strlwr(argv[i]), "--nosound"))) argvsound=false;
+                	if (!(strcmp(strlwr(argv[i]), "--notapeturbo"))) cpc_tapeturbo=0;
+                	if (!(strcmp(strlwr(argv[i]), "--noborder"))) cpc_borderless=1;
+                	if (!(strcmp(strlwr(argv[i]), "--noautorun"))) cpc_noautorun=1;
+                	if (!(strcmp(strlwr(argv[i]), "--showinfo"))) cpc_showinfo=1;
+                	if (!(strcmp(strlwr(argv[i]), "--parados")))  cpc_paradosmode=5;
+//                	if (!(strcmp(strlwr(argv[i]), "--screenpause"))) argvpausescreen=true;
+		 }
+
+
+			//WITH PARAM OPTIONS
 
 	         if ((argv[i][0] == '-') &&  (argv[i][1] == '-') && (i<(argc-1))  )
 		 {
@@ -4681,6 +4748,15 @@ drvfB[0]='\0';
 	                	if (!(strcmp(strlwr(argv[i+1]), "3"))) cpc_initialvideo=4;
 				}
 
+                	if (!(strcmp(strlwr(argv[i]), "--parados")))
+				{
+				cpc_paradosmode=5; //This will load PARADOS AS IS the file, no reconf...
+	                	if (!(strcmp(strlwr(argv[i+1]), "1"))) cpc_paradosmode=1;
+	                	if (!(strcmp(strlwr(argv[i+1]), "2"))) cpc_paradosmode=2;
+	                	if (!(strcmp(strlwr(argv[i+1]), "3"))) cpc_paradosmode=3;
+	                	if (!(strcmp(strlwr(argv[i+1]), "4"))) cpc_paradosmode=4;
+				}
+
                 	if (!(strcmp(strlwr(argv[i]), "--render")))
 				{
 	                	if (!(strcmp(strlwr(argv[i+1]), "0"))) cpc_initialrender=0;
@@ -4691,26 +4767,14 @@ drvfB[0]='\0';
 
 		   }
 
-			//NO PARAM OPTIONS
-		  if ((argv[i][0] == '-') &&  (argv[i][1] == '-') )
-		  {
-                	if (!(strcmp(strlwr(argv[i]), "--green"))) cpc_green=1;
-                	if (!(strcmp(strlwr(argv[i]), "--nosound"))) argvsound=false;
-                	if (!(strcmp(strlwr(argv[i]), "--notapeturbo"))) cpc_tapeturbo=0;
-                	if (!(strcmp(strlwr(argv[i]), "--noborder"))) cpc_borderless=1;
-                	if (!(strcmp(strlwr(argv[i]), "--noautorun"))) cpc_noautorun=1;
-                	if (!(strcmp(strlwr(argv[i]), "--showinfo"))) cpc_showinfo=1;
-//                	if (!(strcmp(strlwr(argv[i]), "--screenpause"))) argvpausescreen=true;
-		 }
         	}
 	}
-
 
 if (cpc_memory==1) cpc_memory=128; //No memory setting, set default
 
 
 	//fprintf(stdout, "Arguments: %d %d\n", argvgp2xmenu, argvsound);
-      
+
 	fprintf(stdout, "======================\nCapriceRPI Start:\n======================\n" VERSION_STRING " \n" AUTOR_STRING " \n" NOTE_STRING "\n...\n");
 
    if (SDL_Init(SDL_INIT_AUDIO) < 0) {

@@ -54,6 +54,12 @@ Command Line
                                  1 Scanlines
                                  2 Interlaced
                                  3 CRT dirty emulation
+   --parados                   = Load external Parados
+                                 (Into rom dir at executable location)
+     Optional modifiers          1 A:3inch   B:3.5inch
+                                 2 A:3.5inch B:3.5inch
+                                 3 A:3.5inch B:3inch
+                                 4 A:3inch   B:3inch
 
       
 _____________________________________________________________________________________________________
@@ -124,6 +130,12 @@ ________________________________________________________________________________
 
 Release history
 ================
+
+V1.3d Parados support
+====
+-Added Parados rom support at command line.
+ Put the amsdos.rom file into ./rom directory 
+ at the same location as executable
 
 V1.3c Command Line Fun Release Vol 2
 ====
