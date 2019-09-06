@@ -15,7 +15,7 @@ CFLAGS  = $(GFLAGS) -O2 -funroll-loops -ffast-math -fomit-frame-pointer -fno-str
 #CFLAGS  = $(GFLAGS) -gstabs+ -static
 #endif
 
-LIBS =  $(STATICLIBS) -lz  -lm -lfreetype -lpng12 -ljpeg 
+LIBS =  $(STATICLIBS) -lz  -lm -lfreetype -lpng -ljpeg 
 
 
 capriceRPI2: cap32.cpp menu.o autotype.o crtc.o fdc.o psg.o tape.o z80.o cap32.h z80.h

@@ -18,9 +18,9 @@ ASMFLAGS =
 #endif
 
 ifdef STATICDIR
-	LIBS =  $(STATICLIBS) -lz -lm -ldl -lfreetype -lpng12 -ljpeg 
+	LIBS =  $(STATICLIBS) -lz -lm -ldl -lfreetype -lpng -ljpeg 
 else
-	LIBS =  -lSDL -lSDL_ttf -lSDL_image -lz -lm -ldl -lfreetype -lpng12 -ljpeg 
+	LIBS =  -lSDL -lSDL_ttf -lSDL_image -lz -lm -ldl -lfreetype -lpng -ljpeg 
 endif
 
 capriceRPI-notpi: cap32.cpp menu.o autotype.o crtc.o fdc.o psg.o tape.o z80.o cap32.h z80.h autoboot.c vjoystick.c
